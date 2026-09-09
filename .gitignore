@@ -1,0 +1,61 @@
+# XAMPP specific
+uploads/
+uploads/players/
+uploads/staff/
+uploads/news/
+uploads/gallery/
+uploads/videos/
+uploads/backups/
+
+# Database files
+*.sql
+*.sql.gz
+
+# Backup files
+*.backup
+*.bak
+
+# System files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Logs
+*.log
+error_log
+
+# Temporary files
+*.tmp
+*.temp
+cache/
+tmp/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Vendor/Composer
+vendor/
+composer.lock
+composer.phar
+
+# Node modules
+node_modules/
+npm-debug.log
+
+# Package files
+*.zip
+*.rar
+*.7z
+*.tar.gz
+
+# XAMPP specific
+logs/
+conf/

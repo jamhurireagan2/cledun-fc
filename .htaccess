@@ -1,0 +1,22 @@
+# Enable rewriting
+RewriteEngine On
+
+# Prevent directory listing
+Options -Indexes
+
+# Protect sensitive files
+<FilesMatch "\.(sql|log|ini|config|json)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Protect includes folder
+RewriteRule ^includes/ - [F,L]
+
+# Error pages
+ErrorDocument 404 /cledun-fc/404.php
+ErrorDocument 403 /cledun-fc/403.php
+
+# Clean URLs (optional - uncomment when needed)
+# RewriteRule ^category/([a-z0-9-]+)/?$ category.php?slug=$1 [L,QSA]
+# RewriteRule ^player/([0-9]+)/?$ player.php?id=$1 [L,QSA]
