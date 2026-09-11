@@ -234,17 +234,26 @@ require_once 'includes/header.php';
         <div class="news-grid">
             <?php if (count($latestNews) > 0): ?>
                 <?php foreach ($latestNews as $news): ?>
-                    <article class="news-card">
-                        <div class="news-content">
-                            <div class="news-meta">
-                                <span><i class="far fa-calendar-alt"></i> <?php echo formatDate($news['created_at']); ?></span>
-                                <span class="news-category"><?php echo str_replace('-', ' ', ucfirst($news['category'])); ?></span>
-                            </div>
-                            <h3 class="news-title"><?php echo $news['title']; ?></h3>
-                            <p class="news-excerpt"><?php echo $news['excerpt'] ?: substr(strip_tags($news['content']), 0, 150) . '...'; ?></p>
-                            <a href="<?php echo SITE_URL; ?>news.php" class="btn btn-primary" style="font-size:0.8rem;padding:8px 20px;margin-top:12px;">Read More</a>
-                        </div>
-                    </article>
+                <article class="news-card">
+                        <?php if ($news['featured_image']): ?>
+                         <div style="height:180px;overflow:hidden;">
+                              <img src="<?php echo SITE_URL; ?>uploads/news/<?php echo $news['featured_image']; ?>" 
+                              alt="<?php echo $news['title']; ?>" 
+                             style="width:100%;height:100%;object-fit:cover;">
+                       </div>
+            <?php endif; ?>
+              <div class="news-content">
+                <div class="news-meta">
+            <span><i class="far fa-calendar-alt"></i> <?php echo formatDate($news['created_at']); ?></span>
+            <span class="news-category"><?php echo str_replace('-', ' ', ucfirst($news['category'])); ?></span>
+            </div>
+        <h3 class="news-title"><?php echo $news['title']; ?></h3>
+        <p class="news-excerpt"><?php echo $news['excerpt'] ?: substr(strip_tags($news['content']), 0, 150) . '...'; ?></p>
+        <a href="<?php echo SITE_URL; ?>news-detail.php?id=<?php echo $news['id']; ?>" class="btn btn-primary" style="font-size:0.8rem;padding:8px 20px;margin-top:12px;">
+            Read More
+        </a>
+    </div>
+</article>
                 <?php endforeach; ?>
             <?php else: ?>
                 <p style="text-align:center;color:var(--gray-text);grid-column:1/-1;padding:40px 0;">No news available yet. Check back soon!</p>
