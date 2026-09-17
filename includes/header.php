@@ -5,8 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo isset($pageTitle) ? $pageTitle : SITE_NAME; ?></title>
     
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="<?php echo SITE_URL; ?>manifest.json">
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#1a2a6c">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="CLEDUN FC">
+    <link rel="apple-touch-icon" href="<?php echo SITE_URL; ?>assets/images/icon-192.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="<?php echo SITE_URL; ?>assets/images/icon-96.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="<?php echo SITE_URL; ?>assets/images/icon-72.png">
+    
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
     <link rel="stylesheet" href="<?php echo SITE_URL; ?>assets/css/style.css">
     <link rel="stylesheet" href="<?php echo SITE_URL; ?>assets/css/responsive.css">
     
@@ -113,7 +130,8 @@
             border: none;
             cursor: pointer;
             padding: 8px;
-            z-index: 1001;
+            z-index: 1000;
+            position: relative;
         }
         
         .hamburger span {
@@ -153,31 +171,61 @@
             50% { opacity: 0.4; }
         }
         
-        /* MOBILE STYLES */
+        /* Mobile Menu Overlay */
+        .menu-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 998;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .menu-overlay.active {
+            display: block;
+            opacity: 1;
+        }
+        
+        /* MOBILE STYLES - SIDE DRAWER */
         @media (max-width: 992px) {
             .hamburger {
                 display: flex;
+                position: fixed;
+                top: 15px;
+                right: 20px;
+                z-index: 1000;
+            }
+            
+            .nav-logo {
+                z-index: 1000;
             }
             
             .nav-links {
-                display: none;
-                position: absolute;
-                top: 100%;
-                left: 0;
-                right: 0;
+                display: flex;
+                position: fixed;
+                top: 0;
+                right: -100%;
+                width: 280px;
+                height: 100vh;
                 background: #0d1b3e;
                 flex-direction: column;
-                padding: 15px 20px;
+                padding: 80px 20px 30px;
                 gap: 0;
-                border-top: 3px solid #fbbf24;
-                max-height: 85vh;
-                overflow-y: auto;
-                box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+                box-shadow: -10px 0 40px rgba(0,0,0,0.5);
                 align-items: stretch;
+                transition: right 0.3s ease;
+                overflow-y: auto;
+                z-index: 999;
+                margin: 0;
+                list-style: none;
             }
             
             .nav-links.active {
-                display: flex !important;
+                right: 0;
             }
             
             .nav-links li {
@@ -187,17 +235,20 @@
             
             .nav-links li:last-child {
                 border-bottom: none;
-                margin-top: 10px;
+                margin-top: 15px;
             }
             
             .nav-links li a {
                 padding: 14px 0;
                 font-size: 1rem;
                 width: 100%;
+                color: #e5e7eb;
+                display: block;
             }
             
             .nav-links .dropdown {
                 position: static;
+                width: 100%;
             }
             
             .nav-links .dropdown-menu {
@@ -287,6 +338,11 @@
         var navLinks = document.getElementById('navLinks');
         var dropdownToggles = document.querySelectorAll('.dropdown-toggle');
         
+        // Create overlay
+        var overlay = document.createElement('div');
+        overlay.className = 'menu-overlay';
+        document.body.appendChild(overlay);
+        
         // Toggle mobile menu
         if (hamburger && navLinks) {
             hamburger.addEventListener('click', function(e) {
@@ -294,8 +350,16 @@
                 e.stopPropagation();
                 navLinks.classList.toggle('active');
                 hamburger.classList.toggle('active');
+                overlay.classList.toggle('active');
             });
         }
+        
+        // Close menu when clicking overlay
+        overlay.addEventListener('click', function() {
+            navLinks.classList.remove('active');
+            hamburger.classList.remove('active');
+            overlay.classList.remove('active');
+        });
         
         // Toggle dropdown on click (mobile)
         dropdownToggles.forEach(function(toggle) {
@@ -311,16 +375,6 @@
             });
         });
         
-        // Close menu when clicking outside
-        document.addEventListener('click', function(e) {
-            if (navLinks && navLinks.classList.contains('active')) {
-                if (!e.target.closest('.navbar')) {
-                    navLinks.classList.remove('active');
-                    hamburger.classList.remove('active');
-                }
-            }
-        });
-        
         // Close menu when clicking a link (except dropdown toggle)
         var navLinksItems = document.querySelectorAll('.nav-links li a:not(.dropdown-toggle)');
         navLinksItems.forEach(function(link) {
@@ -328,8 +382,66 @@
                 if (window.innerWidth <= 992) {
                     navLinks.classList.remove('active');
                     hamburger.classList.remove('active');
+                    overlay.classList.remove('active');
                 }
             });
         });
     });
+    </script>
+
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('<?php echo SITE_URL; ?>service-worker.js')
+                    .then(function(registration) {
+                        console.log('Service Worker registered!');
+                    })
+                    .catch(function(error) {
+                        console.log('Service Worker registration failed:', error);
+                    });
+            });
+        }
+        
+        // Install prompt
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            
+            setTimeout(() => {
+                if (deferredPrompt) {
+                    const installBtn = document.createElement('button');
+                    installBtn.innerHTML = '📱 Install CLEDUN FC App';
+                    installBtn.style.cssText = `
+                        position: fixed;
+                        bottom: 20px;
+                        left: 50%;
+                        transform: translateX(-50%);
+                        background: linear-gradient(135deg, #fbbf24, #f59e0b);
+                        color: #1a2a6c;
+                        border: none;
+                        padding: 12px 24px;
+                        border-radius: 30px;
+                        font-weight: 700;
+                        font-size: 0.9rem;
+                        cursor: pointer;
+                        box-shadow: 0 4px 20px rgba(251, 191, 36, 0.4);
+                        z-index: 9999;
+                        font-family: inherit;
+                    `;
+                    installBtn.onclick = async () => {
+                        if (deferredPrompt) {
+                            deferredPrompt.prompt();
+                            const { outcome } = await deferredPrompt.userChoice;
+                            console.log('User choice:', outcome);
+                            deferredPrompt = null;
+                            installBtn.remove();
+                        }
+                    };
+                    document.body.appendChild(installBtn);
+                    setTimeout(() => installBtn.remove(), 10000);
+                }
+            }, 5000);
+        });
     </script>
