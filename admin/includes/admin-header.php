@@ -554,6 +554,13 @@ $db = getDB();
             <li><a href="players.php" class="<?php echo strpos($_SERVER['PHP_SELF'], 'players') !== false ? 'active' : ''; ?>">
                 <i class="fas fa-users"></i> Players
             </a></li>
+            <li><a href="registrations.php" class="<?php echo strpos($_SERVER['PHP_SELF'], 'registrations') !== false ? 'active' : ''; ?>">
+              <i class="fas fa-user-plus"></i> Registrations
+                <?php
+                  $pending = getDB()->query("SELECT COUNT(*) AS c FROM player_registrations WHERE status='pending'")->fetch()['c'];
+                  if ($pending > 0) echo '<span style="background:#ef4444;color:#fff;padding:2px 8px;border-radius:12px;font-size:0.7rem;margin-left:auto;">'.$pending.'</span>';
+                ?>
+            </a></li>            
             <li><a href="staff.php" class="<?php echo strpos($_SERVER['PHP_SELF'], 'staff') !== false ? 'active' : ''; ?>">
                 <i class="fas fa-user-tie"></i> Staff
             </a></li>
