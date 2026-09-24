@@ -327,6 +327,7 @@
                 <li><a href="<?php echo SITE_URL; ?>videos.php" class="<?php echo ($currentPage ?? '') === 'videos' ? 'active' : ''; ?>">🎬 Videos</a></li>
                 <li><a href="<?php echo SITE_URL; ?>about.php" class="<?php echo ($currentPage ?? '') === 'about' ? 'active' : ''; ?>">About</a></li>
                 <li><a href="<?php echo SITE_URL; ?>contact.php" class="<?php echo ($currentPage ?? '') === 'contact' ? 'active' : ''; ?>">Contact</a></li>
+                <li><a href="<?php echo SITE_URL; ?>register-player.php" class="<?php echo ($currentPage ?? '') === 'register' ? 'active' : ''; ?>">📝 Register</a></li>
                 <li><a href="<?php echo SITE_URL; ?>tickets.php" class="btn btn-primary" style="background:#fbbf24;color:#1a2a6c;padding:10px 20px;border-radius:8px;text-align:center;">🎟️ Tickets</a></li>
             </ul>
         </div>

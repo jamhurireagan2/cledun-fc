@@ -46,6 +46,7 @@ require_once 'includes/header.php';
                 <div style="display:flex;gap:15px;flex-wrap:wrap;">
                     <a href="<?php echo SITE_URL; ?>tickets.php" class="btn btn-primary">🎟️ Get Tickets</a>
                     <a href="<?php echo SITE_URL; ?>squad.php" class="btn btn-secondary">Meet the Squad</a>
+                    <a href="<?php echo SITE_URL; ?>register-player.php" class="btn btn-primary" style="background:#10b981;color:#fff;">📝 Register Player</a>
                 </div>
             </div>
             <div class="hero-badge">
