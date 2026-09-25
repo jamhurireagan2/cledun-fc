@@ -153,15 +153,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->execute([$regId, $cp['first_name'], $cp['last_name'], $cp['email'], $cp['phone'], $cp['contact_type']]);
             }
 
-            $db->commit();
+           $db->commit();
 
-            // Redirect to success
-            $_SESSION['reg_success'] = [
-                'name' => $first_name . ' ' . $last_name,
-                'id'   => $regId
-            ];
-            header('Location: register-player-success.php');
-            exit;
+          // Notify admin about new registration
+            require_once 'includes/notifications.php';
+               notifyAdminNewRegistration([
+                 'id' => $regId,
+                 'first_name' => $first_name,
+                 'last_name' => $last_name,
+                 'birth_date' => $birth_date,
+                 'nationality' => $nationality,
+                 'email' => $email,
+                 'phone' => $phone
+             ], $cat['name'] ?? 'Team');
+
+               $_SESSION['reg_success'] = ['name' => $first_name . ' ' . $last_name, 'id' => $regId];
+              header('Location: register-player-success.php');
+             exit;
 
         } catch (Exception $e) {
             $db->rollBack();

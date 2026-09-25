@@ -1,36 +1,30 @@
 <?php
 /**
- * CLEDUN FC - Email + SMS Notification Helper
- * Uses Gmail SMTP via cURL (No PHPMailer needed)
+ * CLEDUN FC - Email Notification Helper
+ * Email only for now (SMS disabled)
  */
 
 /**
- * Send an email using Gmail SMTP via cURL
+ * Send email via Gmail SMTP using cURL
  */
 function sendEmailNotification($to, $toName, $subject, $bodyHtml) {
     $smtpHost = 'ssl://smtp.gmail.com';
     $smtpPort = 465;
     $username = 'cledunfc@gmail.com';        // ← YOUR GMAIL
-    $password = '@cledunfc254';        // ← YOUR 16-CHAR APP PASSWORD
+    $password = 'ggsb vpam eybw xjdc';        // ← REPLACE WITH YOUR 16-CHAR APP PASSWORD
 
     $from     = 'cledunfc@gmail.com';
     $fromName = 'CLEDUN FC';
 
-    // Build email headers
-    $headers  = "MIME-Version: 1.0\r\n";
-    $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
-    $headers .= "From: $fromName <$from>\r\n";
-    $headers .= "Reply-To: $from\r\n";
-    $headers .= "Subject: $subject\r\n";
-
-    $data = "To: $toName <$to>\r\n" . $headers . "\r\n" . $bodyHtml;
-
     try {
         $fp = @stream_socket_client(
             $smtpHost . ':' . $smtpPort,
-            $errno, $errstr, 15,
+            $errno, $errstr, 20,
             STREAM_CLIENT_CONNECT,
-            stream_context_create(['ssl' => ['verify_peer' => false, 'verify_peer_name' => false]])
+            stream_context_create(['ssl' => [
+                'verify_peer' => false,
+                'verify_peer_name' => false
+            ]])
         );
 
         if (!$fp) {
@@ -65,9 +59,10 @@ function sendEmailNotification($to, $toName, $subject, $bodyHtml) {
         // DATA
         fwrite($fp, "DATA\r\n"); fgets($fp, 515);
 
-        // Body
+        // Compose message
         $message = "To: $toName <$to>\r\n";
         $message .= "From: $fromName <$from>\r\n";
+        $message .= "Reply-To: $from\r\n";
         $message .= "Subject: $subject\r\n";
         $message .= "MIME-Version: 1.0\r\n";
         $message .= "Content-Type: text/html; charset=UTF-8\r\n";
@@ -86,59 +81,12 @@ function sendEmailNotification($to, $toName, $subject, $bodyHtml) {
 }
 
 /**
- * Send SMS via Africa's Talking
- */
-function sendSMSNotification($phone, $message) {
-    // === SANDBOX MODE ===
-    $username = 'sandbox';
-    $apiKey   = 'atsk_192a726fee0501be94d0502586bba4d6ab4a168b71a53d5b6172cbee3346751f80363f81';
-
-    // Clean the phone number
-    $phone = preg_replace('/[^0-9+]/', '', $phone);
-    if (substr($phone, 0, 1) === '0') {
-        $phone = '+254' . substr($phone, 1);
-    } elseif (substr($phone, 0, 4) !== '+254') {
-        $phone = '+254' . ltrim($phone, '+');
-    }
-
-    // SANDBOX endpoint
-    $url = 'https://api.sandbox.africastalking.com/version1/messaging';
-
-    $data = [
-        'username' => $username,
-        'to'       => $phone,
-        'message'  => $message
-    ];
-
-    $ch = curl_init($url);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        'apiKey: ' . $apiKey,
-        'Accept: application/json',
-        'Content-Type: application/x-www-form-urlencoded'
-    ]);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 15);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-
-    // Log for debugging
-    error_log("SMS Response: HTTP $httpCode | $response");
-
-    return $httpCode >= 200 && $httpCode < 300;
-}
-
-/**
- * Notify approved registration
+ * Notify approved registration (EMAIL ONLY)
  */
 function notifyRegistrationApproved($registration, $categoryName) {
     $fullName = $registration['first_name'] . ' ' . $registration['last_name'];
     $ref = str_pad($registration['id'], 6, '0', STR_PAD_LEFT);
 
-    // EMAIL
     $emailSent = false;
     if (!empty($registration['email'])) {
         $subject = "🎉 CLEDUN FC Registration Approved - {$fullName}";
@@ -155,7 +103,7 @@ function notifyRegistrationApproved($registration, $categoryName) {
                     <p><strong>Category:</strong> {$categoryName}</p>
                     <p>Welcome to the CLEDUN FC family! Our team will contact you shortly with the next steps.</p>
                     <p style='margin-top:25px;'>For any inquiries:</p>
-                    <p>📧 <a href='mailto:cledunsports@gmail.com'>cledunsports@gmail.com</a><br>
+                    <p>📧 <a href='mailto:cledunfc@gmail.com'>cledunfc@gmail.com</a><br>
                        📱 WhatsApp: <a href='https://wa.me/254710339213'>+254 710 339 213</a></p>
                     <p style='margin-top:25px;color:#6b7280;font-size:0.9rem;'>— CLEDUN FC Team</p>
                 </div>
@@ -167,18 +115,11 @@ function notifyRegistrationApproved($registration, $categoryName) {
         $emailSent = sendEmailNotification($registration['email'], $fullName, $subject, $body);
     }
 
-    // SMS
-    $smsSent = false;
-    if (!empty($registration['phone'])) {
-        $sms = "CLEDUN FC: Congratulations {$fullName}! Your registration for {$categoryName} (Ref #{$ref}) has been APPROVED. Welcome to the team!";
-        $smsSent = sendSMSNotification($registration['phone'], $sms);
-    }
-
-    return ['email' => $emailSent, 'sms' => $smsSent];
+    return ['email' => $emailSent, 'sms' => false];
 }
 
 /**
- * Notify rejected registration
+ * Notify rejected registration (EMAIL ONLY)
  */
 function notifyRegistrationRejected($registration, $reason) {
     $fullName = $registration['first_name'] . ' ' . $registration['last_name'];
@@ -206,11 +147,43 @@ function notifyRegistrationRejected($registration, $reason) {
         $emailSent = sendEmailNotification($registration['email'], $fullName, $subject, $body);
     }
 
-    $smsSent = false;
-    if (!empty($registration['phone'])) {
-        $sms = "CLEDUN FC: Hi {$fullName}, your application #{$ref} was not approved. Reason: {$reason}. Contact us for more info.";
-        $smsSent = sendSMSNotification($registration['phone'], $sms);
-    }
+    return ['email' => $emailSent, 'sms' => false];
+}
 
-    return ['email' => $emailSent, 'sms' => $smsSent];
+/**
+ * Send admin notification when a new registration is submitted
+ */
+function notifyAdminNewRegistration($registration, $categoryName) {
+    $to = 'cledunfc@gmail.com';
+    $toName = 'CLEDUN FC Admin';
+    
+    $fullName = $registration['first_name'] . ' ' . $registration['last_name'];
+    $ref = str_pad($registration['id'], 6, '0', STR_PAD_LEFT);
+    $age = (new DateTime($registration['birth_date']))->diff(new DateTime())->y;
+
+    $subject = "📝 New Player Registration - {$fullName}";
+    $body = "
+        <div style='font-family:Arial,sans-serif;max-width:600px;margin:auto;'>
+            <div style='background:#1a2a6c;color:#fff;padding:20px;text-align:center;'>
+                <h2 style='margin:0;color:#fbbf24;'>📝 New Player Registration</h2>
+            </div>
+            <div style='background:#fff;padding:25px;border:1px solid #e5e7eb;'>
+                <p><strong>Reference:</strong> #{$ref}</p>
+                <p><strong>Player:</strong> {$fullName}</p>
+                <p><strong>Category:</strong> {$categoryName}</p>
+                <p><strong>Age:</strong> {$age} years</p>
+                <p><strong>Nationality:</strong> {$registration['nationality']}</p>
+                <p><strong>Email:</strong> " . ($registration['email'] ?: 'Not provided') . "</p>
+                <p><strong>Phone:</strong> {$registration['phone']}</p>
+                <p style='margin-top:20px;'>
+                    <a href='https://cledunfc.gamer.gd/admin/registrations.php' 
+                       style='background:#fbbf24;color:#1a2a6c;padding:12px 24px;text-decoration:none;border-radius:8px;font-weight:bold;'>
+                        Review in Admin Panel →
+                    </a>
+                </p>
+            </div>
+        </div>
+    ";
+
+    return sendEmailNotification($to, $toName, $subject, $body);
 }
