@@ -59,7 +59,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (empty($school)) {
         $error = 'School/Kindergarten is required.';
     } elseif (!$agreement) {
-        $error = 'You must accept the membership terms.';
+        $fielderrors = 'You must read andaccept the membership terms 
+        and conditions before submitting.';
     }
 
     // === Age auto-check ===
@@ -332,19 +333,29 @@ require_once 'includes/header.php';
                 </div>
 
                 <!-- 6. Terms -->
-                <h2 style="color:var(--primary);font-size:1.3rem;margin:30px 0 20px;border-bottom:2px solid var(--secondary);padding-bottom:8px;">📜 Membership Terms and Conditions</h2>
+<h2 style="color:var(--primary);font-size:1.3rem;margin:30px 0 20px;border-bottom:2px solid var(--secondary);padding-bottom:8px;">📜 Membership Terms and Conditions</h2>
 
-                <div class="form-group">
-                    <label>Signatory Name *</label>
-                    <input type="text" name="signatory_name" class="form-control" placeholder="Parent / Guardian full name" required>
-                </div>
+<div class="form-group">
+    <label>Signatory Name *</label>
+    <input type="text" name="signatory_name" class="form-control" value="<?php echo htmlspecialchars($_POST['signatory_name'] ?? ''); ?>" placeholder="Parent / Guardian full name">
+    <?php if (!empty($fieldErrors['signatory_name'])): ?><small style="color:#ef4444;"><?php echo $fieldErrors['signatory_name']; ?></small><?php endif; ?>
+</div>
 
-                <div style="background:#fef3c7;padding:15px;border-radius:8px;margin-bottom:20px;border-left:4px solid #f59e0b;">
-                    <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-weight:600;">
-                        <input type="checkbox" name="agreement" value="1" required style="margin-top:4px;">
-                        <span>I confirm that I am the parent / legal guardian and I accept the CLEDUN FC membership terms and conditions.</span>
-                    </label>
-                </div>
+<!-- Terms Preview Box -->
+<div style="background:#f8fafc;border:2px solid #e5e7eb;border-radius:10px;padding:20px;margin-bottom:20px;max-height:250px;overflow-y:auto;">
+    <h4 style="color:var(--primary);margin-bottom:12px;font-size:1rem;">📄 Terms & Conditions</h4>
+    <div style="color:var(--gray-text);font-size:0.9rem;line-height:1.7;white-space:pre-wrap;"><?php echo htmlspecialchars(getSettings('registration_terms') ?: 'No terms set. Please contact the admin.'); ?></div>
+</div>
+
+<!-- Agreement Checkbox -->
+<div style="background:#fef3c7;padding:18px;border-radius:10px;margin-bottom:20px;border-left:4px solid #f59e0b;">
+    <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;font-weight:600;">
+        <input type="checkbox" name="agreement" value="1" <?php echo isset($_POST['agreement'])?'checked':''; ?> style="margin-top:4px;width:20px;height:20px;cursor:pointer;">
+        <span style="font-size:0.95rem;">I confirm that I am the parent / legal guardian and I have read and agree to all the CLEDUN FC membership terms and conditions above. *</span>
+    </label>
+    <?php if (!empty($fieldErrors['agreement'])): ?><small style="color:#ef4444;display:block;margin-top:8px;"><?php echo $fieldErrors['agreement']; ?></small><?php endif; ?>
+</div>
+
 
                 <button type="submit" class="btn btn-primary" style="width:100%;padding:14px;font-size:1rem;">
                     ✅ Submit Registration
