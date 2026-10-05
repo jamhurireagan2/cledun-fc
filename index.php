@@ -236,18 +236,18 @@ require_once 'includes/header.php';
             <?php if (count($latestNews) > 0): ?>
                 <?php foreach ($latestNews as $news): ?>
                 <article class="news-card">
-                        <?php if ($news['featured_image']): ?>
-                         <div style="height:180px;overflow:hidden;">
-                              <img src="<?php echo SITE_URL; ?>uploads/news/<?php echo $news['featured_image']; ?>" 
-                              alt="<?php echo $news['title']; ?>" 
-                             style="width:100%;height:100%;object-fit:cover;">
-                       </div>
-            <?php endif; ?>
-              <div class="news-content">
-                <div class="news-meta">
+    <?php if ($news['featured_image']): ?>
+        <div style="height:180px;overflow:hidden;">
+            <img src="<?php echo SITE_URL; ?>uploads/news/<?php echo $news['featured_image']; ?>" 
+                 alt="<?php echo $news['title']; ?>" 
+                 style="width:100%;height:100%;object-fit:cover;">
+        </div>
+    <?php endif; ?>
+    <div class="news-content">
+        <div class="news-meta">
             <span><i class="far fa-calendar-alt"></i> <?php echo formatDate($news['created_at']); ?></span>
             <span class="news-category"><?php echo str_replace('-', ' ', ucfirst($news['category'])); ?></span>
-            </div>
+        </div>
         <h3 class="news-title"><?php echo $news['title']; ?></h3>
         <p class="news-excerpt"><?php echo $news['excerpt'] ?: substr(strip_tags($news['content']), 0, 150) . '...'; ?></p>
         <a href="<?php echo SITE_URL; ?>news-detail.php?id=<?php echo $news['id']; ?>" class="btn btn-primary" style="font-size:0.8rem;padding:8px 20px;margin-top:12px;">
@@ -420,21 +420,23 @@ require_once 'includes/header.php';
         </div>
         
         <?php
-        // Get latest videos
         $videos = $db->query("SELECT * FROM videos WHERE is_active = 1 ORDER BY display_order ASC, created_at DESC LIMIT 3")->fetchAll();
         ?>
         
         <?php if (count($videos) > 0): ?>
             <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:25px;">
-                <?php foreach ($videos as $video): ?>
+                <?php foreach ($videos as $video): 
+                    $videoSrc = $video['video_file'] 
+                        ? SITE_URL . 'uploads/videos/' . $video['video_file'] 
+                        : $video['video_url'];
+                    $videoType = $video['video_file'] ? 'uploaded' : 'youtube';
+                ?>
                     <div style="background:var(--white);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);transition:var(--transition);cursor:pointer;" 
-                         onclick="openVideoModal('<?php 
-                            if ($video['video_file']) {
-                                echo SITE_URL . 'uploads/videos/' . $video['video_file'];
-                            } else {
-                                echo $video['video_url'];
-                            }
-                         ?>', '<?php echo addslashes($video['title']); ?>', '<?php echo addslashes($video['description'] ?? ''); ?>', '<?php echo $video['video_file'] ? 'uploaded' : 'youtube'; ?>')">
+                         data-src="<?php echo htmlspecialchars($videoSrc, ENT_QUOTES); ?>"
+                         data-title="<?php echo htmlspecialchars($video['title'], ENT_QUOTES); ?>"
+                         data-desc="<?php echo htmlspecialchars($video['description'] ?? '', ENT_QUOTES); ?>"
+                         data-type="<?php echo $videoType; ?>"
+                         onclick="openVideoModalFromCard(this)">
                         <div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;background:#0d1b3e;">
                             <?php if ($video['thumbnail']): ?>
                                 <img src="<?php echo SITE_URL; ?>uploads/videos/<?php echo $video['thumbnail']; ?>" 
@@ -475,8 +477,16 @@ require_once 'includes/header.php';
 
 <!-- Video Modal Script -->
 <script>
+function openVideoModalFromCard(el) {
+    openVideoModal(
+        el.dataset.src,
+        el.dataset.title,
+        el.dataset.desc,
+        el.dataset.type
+    );
+}
+
 function openVideoModal(url, title, description, type) {
-    // Create modal if it doesn't exist
     let modal = document.getElementById('videoModal');
     
     if (!modal) {
@@ -514,20 +524,17 @@ function openVideoModal(url, title, description, type) {
     const video = document.getElementById('uploadedVideoPlayer');
     const source = document.getElementById('videoSource');
     
-    // Hide both players first
     iframe.style.display = 'none';
     iframe.src = '';
     video.style.display = 'none';
     video.pause();
     
     if (type === 'uploaded') {
-        // Show uploaded video
         source.src = url;
         video.load();
         video.style.display = 'block';
         video.play();
     } else {
-        // Show YouTube video
         iframe.src = url;
         iframe.style.display = 'block';
     }

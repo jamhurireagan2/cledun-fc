@@ -10,11 +10,13 @@
 function sendEmailNotification($to, $toName, $subject, $bodyHtml) {
     $smtpHost = 'ssl://smtp.gmail.com';
     $smtpPort = 465;
-    $username = 'cledunfc@gmail.com';        // ← YOUR GMAIL
-    $password = 'ggsb vpam eybw xjdc';        // ← REPLACE WITH YOUR 16-CHAR APP PASSWORD
+    $username = 'cledunsports@gmail.com';        // ← YOUR GMAIL
+    $password = 'getvmrisayytsqad';        // ← REPLACE WITH YOUR 16-CHAR APP PASSWORD
 
-    $from     = 'cledunfc@gmail.com';
+    $from     = 'cledunsports@gmail.com';
     $fromName = 'CLEDUN FC';
+
+    $to = 'cledunsports@gmail.com';
 
     try {
         $fp = @stream_socket_client(
@@ -103,7 +105,7 @@ function notifyRegistrationApproved($registration, $categoryName) {
                     <p><strong>Category:</strong> {$categoryName}</p>
                     <p>Welcome to the CLEDUN FC family! Our team will contact you shortly with the next steps.</p>
                     <p style='margin-top:25px;'>For any inquiries:</p>
-                    <p>📧 <a href='mailto:cledunfc@gmail.com'>cledunfc@gmail.com</a><br>
+                    <p>📧 <a href='mailto:cledunsports@gmail.com'>cledunsports@gmail.com</a><br>
                        📱 WhatsApp: <a href='https://wa.me/254710339213'>+254 710 339 213</a></p>
                     <p style='margin-top:25px;color:#6b7280;font-size:0.9rem;'>— CLEDUN FC Team</p>
                 </div>
@@ -154,7 +156,7 @@ function notifyRegistrationRejected($registration, $reason) {
  * Send admin notification when a new registration is submitted
  */
 function notifyAdminNewRegistration($registration, $categoryName) {
-    $to = 'cledunfc@gmail.com';
+    $to = 'cledunsports@gmail.com';
     $toName = 'CLEDUN FC Admin';
     
     $fullName = $registration['first_name'] . ' ' . $registration['last_name'];
