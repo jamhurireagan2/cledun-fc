@@ -155,6 +155,21 @@ require_once 'includes/header.php';
                     </ul>
                 </div>
             </div>
+
+            <!-- Map Section -->
+<div style="margin-top:30px;background:var(--white);padding:15px;border-radius:var(--radius);box-shadow:var(--shadow);">
+    <h3 style="color:var(--primary);margin-bottom:15px;padding:0 15px;">📍 Our Location</h3>
+    <iframe 
+        width="100%" 
+        height="400" 
+        style="border:0;border-radius:8px;"
+        src="https://www.google.com/maps?q=<?php echo getSettings('map_latitude') ?? '-1.2921'; ?>,<?php echo getSettings('map_longitude') ?? '36.8219'; ?>&z=<?php echo getSettings('map_zoom') ?? '15'; ?>&output=embed"
+        allowfullscreen
+        loading="lazy">
+    </iframe>
+</div>
+
+
             
         </div>
     </div>

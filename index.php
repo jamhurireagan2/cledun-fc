@@ -355,6 +355,62 @@ require_once 'includes/header.php';
     </div>
 </section>
 
+<!-- Location Map Section -->
+<section style="padding: 60px 0; background: var(--light-bg);">
+    <div class="container">
+        <div class="section-title">
+            <h2>📍 Find Us Here</h2>
+            <p>Visit us at <?php echo getSettings('stadium_location') ?: 'Farasi Lane Primary School'; ?></p>
+        </div>
+        
+        <div style="display:grid;grid-template-columns:1fr 2fr;gap:30px;align-items:center;">
+            
+            <!-- Info Card -->
+            <div style="background:var(--white);padding:35px;border-radius:var(--radius);box-shadow:var(--shadow);border-left:5px solid var(--secondary);">
+                <div style="font-size:3rem;margin-bottom:15px;">🏟️</div>
+                <h3 style="color:var(--primary);font-size:1.4rem;margin-bottom:10px;">
+                    <?php echo getSettings('stadium_name') ?: 'Farasi Lane'; ?>
+                </h3>
+                <p style="color:var(--gray-text);font-size:1rem;line-height:1.8;margin-bottom:20px;">
+                    <?php echo getSettings('stadium_location') ?: 'Farasi Lane Primary School'; ?>
+                </p>
+                
+                <div style="border-top:1px solid #e5e7eb;padding-top:20px;">
+                    <p style="margin-bottom:10px;"><strong>📧 Email:</strong><br>
+                        <a href="mailto:<?php echo getSettings('contact_email') ?: 'cledunsports@gmail.com'; ?>" style="color:var(--primary);">
+                            <?php echo getSettings('contact_email') ?: 'cledunsports@gmail.com'; ?>
+                        </a>
+                    </p>
+                    <p style="margin-bottom:10px;"><strong>📱 Phone:</strong><br>
+                        <?php echo getSettings('contact_phone') ?: '+254 710 339 213'; ?>
+                    </p>
+                </div>
+                
+                <a href="https://www.google.com/maps/search/?api=1&query=<?php echo getSettings('map_latitude') ?? '-1.2921'; ?>,<?php echo getSettings('map_longitude') ?? '36.8219'; ?>" 
+                   target="_blank" 
+                   class="btn btn-primary" 
+                   style="margin-top:20px;width:100%;text-align:center;">
+                    🧭 Get Directions
+                </a>
+            </div>
+            
+            <!-- Map Embed -->
+            <div style="background:var(--white);padding:15px;border-radius:var(--radius);box-shadow:var(--shadow);">
+                <iframe 
+                    width="100%" 
+                    height="450" 
+                    style="border:0;border-radius:8px;"
+                    src="https://www.google.com/maps?q=<?php echo getSettings('map_latitude') ?? '-1.2921'; ?>,<?php echo getSettings('map_longitude') ?? '36.8219'; ?>&z=<?php echo getSettings('map_zoom') ?? '15'; ?>&output=embed"
+                    allowfullscreen
+                    loading="lazy">
+                </iframe>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+
 <!-- Video Highlights Section -->
 <section style="padding: 60px 0; background: var(--white);">
     <div class="container">
