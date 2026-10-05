@@ -33,28 +33,100 @@ foreach ($categories as $cat) {
 require_once 'includes/header.php';
 ?>
 
-<!-- Hero Section -->
-<section class="hero">
-    <div class="container">
-        <div class="hero-content">
+<!-- Hero Banner Section -->
+<?php 
+$heroBanner = getSettings('hero_banner');
+$bannerPath = $heroBanner && file_exists(__DIR__ . '/uploads/banner/' . $heroBanner)
+    ? SITE_URL . 'uploads/banner/' . $heroBanner
+    : SITE_URL . 'assets/images/default-banner.jpg';
+?>
+
+<section style="position:relative;min-height:600px;display:flex;align-items:center;background:linear-gradient(rgba(13,27,62,0.7), rgba(26,42,108,0.8)), url('<?php echo $bannerPath; ?>') center/cover no-repeat;color:white;overflow:hidden;">
+    
+    <!-- Decorative circle -->
+    <div style="position:absolute;top:-100px;right:-100px;width:400px;height:400px;background:rgba(251,191,36,0.08);border-radius:50%;pointer-events:none;"></div>
+    <div style="position:absolute;bottom:-150px;left:-100px;width:500px;height:500px;background:rgba(251,191,36,0.05);border-radius:50%;pointer-events:none;"></div>
+    
+    <div class="container" style="position:relative;z-index:2;">
+        <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:40px;align-items:center;">
+            
             <div class="hero-text">
-                <h1>Welcome to <span>CLEDUN FC</span></h1>
-                <p>
+                <div style="display:inline-block;background:rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.3);color:#fbbf24;padding:6px 16px;border-radius:30px;font-size:0.85rem;font-weight:600;margin-bottom:20px;">
+                    ⚽ Building Champions Since <?php echo getSettings('club_established') ?: '2026'; ?>
+                </div>
+                
+                <h1 style="font-size:3.2rem;font-weight:900;line-height:1.1;margin-bottom:20px;text-shadow:0 2px 20px rgba(0,0,0,0.3);">
+                    Welcome to <span style="color:#fbbf24;">CLEDUN FC</span>
+                </h1>
+                
+                <p style="font-size:1.15rem;opacity:0.95;margin-bottom:30px;max-width:550px;line-height:1.7;text-shadow:0 2px 10px rgba(0,0,0,0.3);">
                     Founded in <?php echo getSettings('club_established') ?: '2026'; ?>, we nurture young talent and build champions. 
                     Join us on our journey to compete globally!
                 </p>
+                
                 <div style="display:flex;gap:15px;flex-wrap:wrap;">
-                    <a href="<?php echo SITE_URL; ?>tickets.php" class="btn btn-primary">🎟️ Get Tickets</a>
-                    <a href="<?php echo SITE_URL; ?>squad.php" class="btn btn-secondary">Meet the Squad</a>
-                    <a href="<?php echo SITE_URL; ?>register-player.php" class="btn btn-primary" style="background:#10b981;color:#fff;">📝 Register Player</a>
+                    <a href="<?php echo SITE_URL; ?>tickets.php" class="btn btn-primary" style="font-size:1rem;padding:14px 28px;">
+                        🎟️ Get Tickets
+                    </a>
+                    <a href="<?php echo SITE_URL; ?>squad.php" class="btn btn-secondary" style="font-size:1rem;padding:14px 28px;border-color:white;color:white;">
+                        Meet the Squad
+                    </a>
+                    <a href="<?php echo SITE_URL; ?>register-player.php" class="btn btn-primary" style="background:#10b981;color:#fff;font-size:1rem;padding:14px 28px;">
+                        📝 Register Player
+                    </a>
+                </div>
+                
+                <!-- Quick Stats -->
+                <div style="display:flex;gap:35px;margin-top:40px;padding-top:30px;border-top:1px solid rgba(255,255,255,0.15);">
+                    <div>
+                        <div style="font-size:2rem;font-weight:800;color:#fbbf24;">5</div>
+                        <div style="font-size:0.85rem;opacity:0.8;">Teams</div>
+                    </div>
+                    <div>
+                        <div style="font-size:2rem;font-weight:800;color:#fbbf24;">
+                            <?php 
+                            $totalPlayers = $db->query("SELECT COUNT(*) as c FROM players WHERE is_active = 1")->fetch()['c'];
+                            echo $totalPlayers;
+                            ?>
+                        </div>
+                        <div style="font-size:0.85rem;opacity:0.8;">Players</div>
+                    </div>
+                    <div>
+                        <div style="font-size:2rem;font-weight:800;color:#fbbf24;">
+                            <?php echo getSettings('club_established') ?: '2026'; ?>
+                        </div>
+                        <div style="font-size:0.85rem;opacity:0.8;">Established</div>
+                    </div>
                 </div>
             </div>
-            <div class="hero-badge">
-                <img src="<?php echo SITE_URL; ?>assets/images/badge.png" alt="CLEDUN FC Badge" onerror="this.style.display='none'">
+            
+            <!-- Badge -->
+            <div class="hero-badge" style="text-align:center;">
+                <img src="<?php echo SITE_URL; ?>assets/images/badge.png" 
+                     alt="CLEDUN FC Badge" 
+                     style="max-width:300px;width:100%;filter:drop-shadow(0 20px 40px rgba(0,0,0,0.4));"
+                     onerror="this.style.display='none'">
             </div>
         </div>
     </div>
 </section>
+
+<style>
+    @media (max-width: 768px) {
+        section[style*="min-height:600px"] h1 {
+            font-size: 2rem !important;
+        }
+        section[style*="min-height:600px"] > .container > div {
+            grid-template-columns: 1fr !important;
+        }
+        .hero-badge {
+            order: -1;
+        }
+        .hero-badge img {
+            max-width: 180px !important;
+        }
+    }
+</style>
 
 <!-- Slideshow / Gallery Section -->
 <section style="padding: 60px 0; background: var(--light-bg);">

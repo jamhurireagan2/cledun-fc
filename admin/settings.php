@@ -94,7 +94,40 @@ require_once 'includes/admin-header.php';
     <?php endif; ?>
 
     <div style="background:var(--admin-card);padding:25px;border-radius:var(--admin-radius);box-shadow:var(--admin-shadow);">
-        <form method="POST">
+        <form method="POST" enctype="multipart/form-data">
+
+        <!-- Hero Banner Upload -->
+<h3 style="color:var(--admin-dark);margin-bottom:15px;">🖼️ Homepage Hero Banner</h3>
+
+<div class="form-group">
+    <label>Hero Banner Image</label>
+    <p style="color:var(--admin-gray);font-size:0.85rem;margin-bottom:10px;">
+        This is the big photo at the top of your homepage. Recommended size: 1920×1080px or larger.
+    </p>
+    
+    <?php 
+    $currentBanner = getSettings('hero_banner');
+    if ($currentBanner && file_exists(__DIR__ . '/../uploads/banner/' . $currentBanner)): 
+    ?>
+        <div style="margin-bottom:15px;">
+            <img src="<?php echo SITE_URL; ?>uploads/banner/<?php echo $currentBanner; ?>" 
+                 style="max-width:400px;border-radius:10px;box-shadow:0 4px 15px rgba(0,0,0,0.1);" 
+                 alt="Current Hero Banner">
+            <p style="font-size:0.8rem;color:var(--admin-gray);margin-top:5px;">Current banner</p>
+        </div>
+    <?php else: ?>
+        <div style="margin-bottom:15px;padding:30px;background:#f3f4f6;border-radius:10px;text-align:center;color:var(--admin-gray);">
+            <i class="fas fa-image" style="font-size:2rem;"></i>
+            <p style="margin-top:10px;">No banner uploaded yet</p>
+        </div>
+    <?php endif; ?>
+    
+    <input type="file" name="hero_banner" class="form-control" accept="image/*">
+    <small style="color:var(--admin-gray);">JPG, PNG, WEBP · Max 5MB · Recommended 1920×1080px</small>
+</div>
+
+<hr style="margin:25px 0;border-color:#e5e7eb;">
+
             <h3 style="color:var(--admin-dark);margin-bottom:15px;">🏫 Club Information</h3>
             
             <div class="form-row">
