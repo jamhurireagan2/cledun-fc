@@ -16,66 +16,92 @@ $success = '';
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $settings = [
-    'club_name' => sanitize($_POST['club_name']),
-    'club_established' => sanitize($_POST['club_established']),
-    'club_motto' => sanitize($_POST['club_motto']),
-    'stadium_name' => sanitize($_POST['stadium_name']),
-    'stadium_location' => sanitize($_POST['stadium_location']),
-    'map_latitude' => sanitize($_POST['map_latitude'] ?? '-1.2921'),
-    'map_longitude' => sanitize($_POST['map_longitude'] ?? '36.8219'),
-    'map_zoom' => intval($_POST['map_zoom'] ?? 15),
-    'contact_email' => sanitize($_POST['contact_email']),
-    'contact_phone' => sanitize($_POST['contact_phone'])
-];
 
-// === Handle Hero Banner Upload ===
-if (isset($_FILES['hero_banner']) && $_FILES['hero_banner']['error'] === UPLOAD_ERR_OK) {
-    $uploadDir = __DIR__ . '/../uploads/banner/';
-    if (!is_dir($uploadDir)) {
-        mkdir($uploadDir, 0755, true);
-    }
-    
-    $allowed = ['jpg', 'jpeg', 'png', 'webp'];
-    $fileExt = strtolower(pathinfo($_FILES['hero_banner']['name'], PATHINFO_EXTENSION));
-    $fileSize = $_FILES['hero_banner']['size'];
-    
-    if (in_array($fileExt, $allowed) && $fileSize <= 5 * 1024 * 1024) {
-        $fileName = 'hero_' . time() . '.' . $fileExt;
-        $targetPath = $uploadDir . $fileName;
-        
-        if (move_uploaded_file($_FILES['hero_banner']['tmp_name'], $targetPath)) {
-            // Delete old banner if exists
-            $oldBanner = getSettings('hero_banner');
-            if ($oldBanner && file_exists($uploadDir . $oldBanner)) {
-                unlink($uploadDir . $oldBanner);
-            }
-            $settings['hero_banner'] = $fileName;
-        }
-    }
-}
-    
     try {
-        foreach ($settings as $key => $value) {
-            $stmt = $db->prepare("UPDATE settings SET setting_value = ? WHERE setting_key = ?");
-            $stmt->execute([$value, $key]);
+        // === 1. Handle Hero Banner Upload FIRST ===
+        if (isset($_FILES['hero_banner']) && $_FILES['hero_banner']['error'] === UPLOAD_ERR_OK) {
+            $uploadDir = __DIR__ . '/../uploads/banner/';
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0755, true);
+            }
+
+            $allowed  = ['jpg', 'jpeg', 'png', 'webp'];
+            $fileExt  = strtolower(pathinfo($_FILES['hero_banner']['name'], PATHINFO_EXTENSION));
+            $fileSize = $_FILES['hero_banner']['size'];
+
+            if (!in_array($fileExt, $allowed)) {
+                $error = 'Invalid banner file type. Allowed: JPG, PNG, WEBP.';
+            } elseif ($fileSize > 5 * 1024 * 1024) {
+                $error = 'Banner file too large. Maximum size is 5MB.';
+            } else {
+                $fileName   = 'hero_' . time() . '.' . $fileExt;
+                $targetPath = $uploadDir . $fileName;
+
+                if (move_uploaded_file($_FILES['hero_banner']['tmp_name'], $targetPath)) {
+                    // Delete old banner
+                    $oldBanner = getSettings('hero_banner');
+                    if ($oldBanner && file_exists($uploadDir . $oldBanner)) {
+                        @unlink($uploadDir . $oldBanner);
+                    }
+
+                    // Save new banner in settings
+                    $stmt = $db->prepare("SELECT * FROM settings WHERE setting_key = 'hero_banner'");
+                    $stmt->execute();
+                    if ($stmt->fetch()) {
+                        $stmt = $db->prepare("UPDATE settings SET setting_value = ? WHERE setting_key = 'hero_banner'");
+                        $stmt->execute([$fileName]);
+                    } else {
+                        $stmt = $db->prepare("INSERT INTO settings (setting_key, setting_value) VALUES ('hero_banner', ?)");
+                        $stmt->execute([$fileName]);
+                    }
+                } else {
+                    $error = 'Failed to upload banner. Check folder permissions.';
+                }
+            }
         }
-        $success = 'Settings updated successfully!';
+
+        // === 2. Handle text / other settings ===
+        $settings = [
+            'club_name'        => sanitize($_POST['club_name'] ?? 'CLEDUN FC'),
+            'club_established' => sanitize($_POST['club_established'] ?? '2026'),
+            'club_motto'       => sanitize($_POST['club_motto'] ?? ''),
+            'stadium_name'     => sanitize($_POST['stadium_name'] ?? ''),
+            'stadium_location' => sanitize($_POST['stadium_location'] ?? ''),
+            'map_latitude'     => sanitize($_POST['map_latitude'] ?? '-1.2921'),
+            'map_longitude'    => sanitize($_POST['map_longitude'] ?? '36.8219'),
+            'map_zoom'         => intval($_POST['map_zoom'] ?? 15),
+            'contact_email'    => sanitize($_POST['contact_email'] ?? ''),
+            'contact_phone'    => sanitize($_POST['contact_phone'] ?? ''),
+        ];
+
+        foreach ($settings as $key => $value) {
+            $stmt = $db->prepare("SELECT * FROM settings WHERE setting_key = ?");
+            $stmt->execute([$key]);
+
+            if ($stmt->fetch()) {
+                $stmt = $db->prepare("UPDATE settings SET setting_value = ? WHERE setting_key = ?");
+                $stmt->execute([$value, $key]);
+            } else {
+                $stmt = $db->prepare("INSERT INTO settings (setting_key, setting_value) VALUES (?, ?)");
+                $stmt->execute([$key, $value]);
+            }
+        }
+
+        if (!$error) {
+            $success = 'Settings saved successfully!';
+        }
+
     } catch (Exception $e) {
-        $error = 'Failed to update settings: ' . $e->getMessage();
+        $error = 'Error saving settings: ' . $e->getMessage();
     }
 }
 
-
-
-// Get current settings
+// Load current settings for display
 $settings = [];
 $stmt = $db->query("SELECT * FROM settings");
 while ($row = $stmt->fetch()) {
     $settings[$row['setting_key']] = $row['setting_value'];
 }
-
-
 
 require_once 'includes/admin-header.php';
 ?>
@@ -86,50 +112,50 @@ require_once 'includes/admin-header.php';
     </div>
 
     <?php if ($success): ?>
-        <div class="alert alert-success"><?php echo $success; ?></div>
+        <div class="alert alert-success">✅ <?php echo $success; ?></div>
     <?php endif; ?>
 
     <?php if ($error): ?>
-        <div class="alert alert-error"><?php echo $error; ?></div>
+        <div class="alert alert-error">⚠️ <?php echo $error; ?></div>
     <?php endif; ?>
 
     <div style="background:var(--admin-card);padding:25px;border-radius:var(--admin-radius);box-shadow:var(--admin-shadow);">
         <form method="POST" enctype="multipart/form-data">
 
-        <!-- Hero Banner Upload -->
-<h3 style="color:var(--admin-dark);margin-bottom:15px;">🖼️ Homepage Hero Banner</h3>
+            <!-- Hero Banner Upload -->
+            <h3 style="color:var(--admin-dark);margin-bottom:15px;">🖼️ Homepage Hero Banner</h3>
 
-<div class="form-group">
-    <label>Hero Banner Image</label>
-    <p style="color:var(--admin-gray);font-size:0.85rem;margin-bottom:10px;">
-        This is the big photo at the top of your homepage. Recommended size: 1920×1080px or larger.
-    </p>
-    
-    <?php 
-    $currentBanner = getSettings('hero_banner');
-    if ($currentBanner && file_exists(__DIR__ . '/../uploads/banner/' . $currentBanner)): 
-    ?>
-        <div style="margin-bottom:15px;">
-            <img src="<?php echo SITE_URL; ?>uploads/banner/<?php echo $currentBanner; ?>" 
-                 style="max-width:400px;border-radius:10px;box-shadow:0 4px 15px rgba(0,0,0,0.1);" 
-                 alt="Current Hero Banner">
-            <p style="font-size:0.8rem;color:var(--admin-gray);margin-top:5px;">Current banner</p>
-        </div>
-    <?php else: ?>
-        <div style="margin-bottom:15px;padding:30px;background:#f3f4f6;border-radius:10px;text-align:center;color:var(--admin-gray);">
-            <i class="fas fa-image" style="font-size:2rem;"></i>
-            <p style="margin-top:10px;">No banner uploaded yet</p>
-        </div>
-    <?php endif; ?>
-    
-    <input type="file" name="hero_banner" class="form-control" accept="image/*">
-    <small style="color:var(--admin-gray);">JPG, PNG, WEBP · Max 5MB · Recommended 1920×1080px</small>
-</div>
+            <div class="form-group">
+                <label>Hero Banner Image</label>
+                <p style="color:var(--admin-gray);font-size:0.85rem;margin-bottom:10px;">
+                    This is the big photo at the top of your homepage. Recommended size: 1920×1080px or larger.
+                </p>
 
-<hr style="margin:25px 0;border-color:#e5e7eb;">
+                <?php 
+                $currentBanner = $settings['hero_banner'] ?? '';
+                if ($currentBanner && file_exists(__DIR__ . '/../uploads/banner/' . $currentBanner)): 
+                ?>
+                    <div style="margin-bottom:15px;">
+                        <img src="<?php echo SITE_URL; ?>uploads/banner/<?php echo $currentBanner; ?>" 
+                             style="max-width:400px;border-radius:10px;box-shadow:0 4px 15px rgba(0,0,0,0.1);" 
+                             alt="Current Hero Banner">
+                        <p style="font-size:0.8rem;color:var(--admin-gray);margin-top:5px;">Current banner</p>
+                    </div>
+                <?php else: ?>
+                    <div style="margin-bottom:15px;padding:30px;background:#f3f4f6;border-radius:10px;text-align:center;color:var(--admin-gray);">
+                        <i class="fas fa-image" style="font-size:2rem;"></i>
+                        <p style="margin-top:10px;">No banner uploaded yet</p>
+                    </div>
+                <?php endif; ?>
+
+                <input type="file" name="hero_banner" class="form-control" accept="image/*">
+                <small style="color:var(--admin-gray);">JPG, PNG, WEBP · Max 5MB · Recommended 1920×1080px</small>
+            </div>
+
+            <hr style="margin:25px 0;border-color:#e5e7eb;">
 
             <h3 style="color:var(--admin-dark);margin-bottom:15px;">🏫 Club Information</h3>
-            
+
             <div class="form-row">
                 <div class="form-group">
                     <label>Club Name</label>
@@ -140,86 +166,85 @@ require_once 'includes/admin-header.php';
                     <input type="text" name="club_established" class="form-control" value="<?php echo $settings['club_established'] ?? '2026'; ?>">
                 </div>
             </div>
-            
+
             <div class="form-group">
                 <label>Club Motto</label>
                 <input type="text" name="club_motto" class="form-control" value="<?php echo $settings['club_motto'] ?? 'Building Champions Since 2026'; ?>">
             </div>
-            
+
             <hr style="margin:25px 0;border-color:#e5e7eb;">
-            
+
             <h3 style="color:var(--admin-dark);margin-bottom:15px;">🏟️ Stadium Information</h3>
-            
+
             <div class="form-row">
-    <div class="form-group">
-        <label>Stadium Name</label>
-        <input type="text" name="stadium_name" class="form-control" value="<?php echo $settings['stadium_name'] ?? 'Farasi Lane'; ?>">
-    </div>
-    <div class="form-group">
-        <label>Stadium Location</label>
-        <input type="text" name="stadium_location" class="form-control" value="<?php echo $settings['stadium_location'] ?? 'Farasi Lane Primary School'; ?>">
-    </div>
-</div>
+                <div class="form-group">
+                    <label>Stadium Name</label>
+                    <input type="text" name="stadium_name" class="form-control" value="<?php echo $settings['stadium_name'] ?? 'Farasi Lane'; ?>">
+                </div>
+                <div class="form-group">
+                    <label>Stadium Location</label>
+                    <input type="text" name="stadium_location" class="form-control" value="<?php echo $settings['stadium_location'] ?? 'Farasi Lane Primary School'; ?>">
+                </div>
+            </div>
 
-<div class="form-row">
-    <div class="form-group">
-        <label>Latitude</label>
-        <input type="text" name="map_latitude" id="map_latitude" class="form-control" value="<?php echo $settings['map_latitude'] ?? '-1.2921'; ?>" placeholder="-1.2921">
-        <small style="color:var(--admin-gray);">e.g., -1.2921</small>
-    </div>
-    <div class="form-group">
-        <label>Longitude</label>
-        <input type="text" name="map_longitude" id="map_longitude" class="form-control" value="<?php echo $settings['map_longitude'] ?? '36.8219'; ?>" placeholder="36.8219">
-        <small style="color:var(--admin-gray);">e.g., 36.8219</small>
-    </div>
-    <div class="form-group">
-        <label>Zoom Level (10-20)</label>
-        <input type="number" name="map_zoom" id="map_zoom" class="form-control" min="10" max="20" value="<?php echo $settings['map_zoom'] ?? '15'; ?>">
-        <small style="color:var(--admin-gray);">15 = street level</small>
-    </div>
-</div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Latitude</label>
+                    <input type="text" name="map_latitude" id="map_latitude" class="form-control" value="<?php echo $settings['map_latitude'] ?? '-1.2921'; ?>" placeholder="-1.2921">
+                    <small style="color:var(--admin-gray);">e.g., -1.2921</small>
+                </div>
+                <div class="form-group">
+                    <label>Longitude</label>
+                    <input type="text" name="map_longitude" id="map_longitude" class="form-control" value="<?php echo $settings['map_longitude'] ?? '36.8219'; ?>" placeholder="36.8219">
+                    <small style="color:var(--admin-gray);">e.g., 36.8219</small>
+                </div>
+                <div class="form-group">
+                    <label>Zoom Level (10-20)</label>
+                    <input type="number" name="map_zoom" id="map_zoom" class="form-control" min="10" max="20" value="<?php echo $settings['map_zoom'] ?? '15'; ?>">
+                    <small style="color:var(--admin-gray);">15 = street level</small>
+                </div>
+            </div>
 
-<!-- Live Map Preview -->
-<div style="margin-top:15px;padding:15px;background:#f3f4f6;border-radius:10px;">
-    <h4 style="margin-bottom:10px;color:var(--admin-dark);">🗺️ Live Map Preview</h4>
-    <iframe 
-        id="mapPreview"
-        width="100%" 
-        height="300" 
-        style="border:0;border-radius:8px;"
-        src="https://www.google.com/maps?q=<?php echo $settings['map_latitude'] ?? '-1.2921'; ?>,<?php echo $settings['map_longitude'] ?? '36.8219'; ?>&z=<?php echo $settings['map_zoom'] ?? '15'; ?>&output=embed"
-        allowfullscreen>
-    </iframe>
-</div>
+            <!-- Live Map Preview -->
+            <div style="margin-top:15px;padding:15px;background:#f3f4f6;border-radius:10px;">
+                <h4 style="margin-bottom:10px;color:var(--admin-dark);">🗺️ Live Map Preview</h4>
+                <iframe 
+                    id="mapPreview"
+                    width="100%" 
+                    height="300" 
+                    style="border:0;border-radius:8px;"
+                    src="https://www.google.com/maps?q=<?php echo $settings['map_latitude'] ?? '-1.2921'; ?>,<?php echo $settings['map_longitude'] ?? '36.8219'; ?>&z=<?php echo $settings['map_zoom'] ?? '15'; ?>&output=embed"
+                    allowfullscreen>
+                </iframe>
+            </div>
 
-<!-- Get Coordinates Button -->
-<div style="margin-top:10px;">
-    <button type="button" onclick="getLocation()" class="btn-secondary btn-sm">
-        📍 Use My Current Location
-    </button>
-</div>
-            
+            <div style="margin-top:10px;">
+                <button type="button" onclick="getLocation()" class="btn-secondary btn-sm">
+                    📍 Use My Current Location
+                </button>
+            </div>
+
             <hr style="margin:25px 0;border-color:#e5e7eb;">
-            
+
             <h3 style="color:var(--admin-dark);margin-bottom:15px;">📞 Contact Information</h3>
-            
+
             <div class="form-row">
                 <div class="form-group">
                     <label>Contact Email</label>
-                    <input type="email" name="contact_email" class="form-control" value="<?php echo $settings['contact_email'] ?? 'info@cledunfc.com'; ?>">
+                    <input type="email" name="contact_email" class="form-control" value="<?php echo $settings['contact_email'] ?? 'cledunsports@gmail.com'; ?>">
                 </div>
                 <div class="form-group">
                     <label>Contact Phone</label>
-                    <input type="text" name="contact_phone" class="form-control" value="<?php echo $settings['contact_phone'] ?? '+254 700 123 456'; ?>">
+                    <input type="text" name="contact_phone" class="form-control" value="<?php echo $settings['contact_phone'] ?? '0710339213'; ?>">
                 </div>
             </div>
-            
+
             <div style="margin-top:25px;">
                 <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Save Settings</button>
             </div>
         </form>
     </div>
-    
+
     <div style="margin-top:25px;background:var(--admin-card);padding:25px;border-radius:var(--admin-radius);box-shadow:var(--admin-shadow);">
         <h3 style="color:var(--admin-dark);margin-bottom:15px;">ℹ️ System Information</h3>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
@@ -235,7 +260,6 @@ require_once 'includes/admin-header.php';
 </div>
 
 <script>
-// Live map preview on input change
 document.getElementById('map_latitude').addEventListener('input', updateMap);
 document.getElementById('map_longitude').addEventListener('input', updateMap);
 document.getElementById('map_zoom').addEventListener('input', updateMap);
@@ -249,7 +273,6 @@ function updateMap() {
         `https://www.google.com/maps?q=${lat},${lng}&z=${zoom}&output=embed`;
 }
 
-// Get user's current location
 function getLocation() {
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(function(position) {

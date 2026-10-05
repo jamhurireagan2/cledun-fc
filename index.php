@@ -33,33 +33,45 @@ foreach ($categories as $cat) {
 require_once 'includes/header.php';
 ?>
 
-<!-- Hero Banner Section -->
+<!-- ═══════════════════════════════════════════════ -->
+<!-- PART 1: BANNER IMAGE (Just the picture, no text) -->
+<!-- ═══════════════════════════════════════════════ -->
 <?php 
 $heroBanner = getSettings('hero_banner');
-$bannerPath = $heroBanner && file_exists(__DIR__ . '/uploads/banner/' . $heroBanner)
-    ? SITE_URL . 'uploads/banner/' . $heroBanner
-    : SITE_URL . 'assets/images/default-banner.jpg';
+$bannerExists = $heroBanner && file_exists(__DIR__ . '/uploads/banner/' . $heroBanner);
 ?>
 
-<section style="position:relative;min-height:600px;display:flex;align-items:center;background:linear-gradient(rgba(13,27,62,0.7), rgba(26,42,108,0.8)), url('<?php echo $bannerPath; ?>') center/cover no-repeat;color:white;overflow:hidden;">
-    
-    <!-- Decorative circle -->
-    <div style="position:absolute;top:-100px;right:-100px;width:400px;height:400px;background:rgba(251,191,36,0.08);border-radius:50%;pointer-events:none;"></div>
-    <div style="position:absolute;bottom:-150px;left:-100px;width:500px;height:500px;background:rgba(251,191,36,0.05);border-radius:50%;pointer-events:none;"></div>
+<?php if ($bannerExists): ?>
+<!-- Banner Block - Full Width, Sharp Corners -->
+<section style="width:100%;margin:0;padding:0;line-height:0;font-size:0;">
+    <img src="<?php echo SITE_URL; ?>uploads/banner/<?php echo $heroBanner; ?>" 
+         alt="CLEDUN FC Banner"
+         style="width:100%;height:auto;max-height:600px;object-fit:cover;display:block;margin:0;padding:0;vertical-align:bottom;">
+</section>
+<?php endif; ?>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- PART 2: WELCOME SECTION (Text below the banner) -->
+<!-- ═══════════════════════════════════════════════ -->
+<section style="background:linear-gradient(135deg, #1a2a6c 0%, #0d1b3e 100%);color:white;padding:80px 0;position:relative;overflow:hidden;margin-top:30px;">    
+
+    <!-- Decorative circles -->
+    <div style="position:absolute;top:-100px;right:-100px;width:400px;height:400px;background:rgba(251,191,36,0.06);border-radius:50%;pointer-events:none;"></div>
+    <div style="position:absolute;bottom:-150px;left:-100px;width:500px;height:500px;background:rgba(251,191,36,0.04);border-radius:50%;pointer-events:none;"></div>
     
     <div class="container" style="position:relative;z-index:2;">
-        <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:40px;align-items:center;">
+        <div class="hero-content" style="display:grid;grid-template-columns:1.5fr 1fr;gap:50px;align-items:center;">
             
             <div class="hero-text">
                 <div style="display:inline-block;background:rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.3);color:#fbbf24;padding:6px 16px;border-radius:30px;font-size:0.85rem;font-weight:600;margin-bottom:20px;">
                     ⚽ Building Champions Since <?php echo getSettings('club_established') ?: '2026'; ?>
                 </div>
                 
-                <h1 style="font-size:3.2rem;font-weight:900;line-height:1.1;margin-bottom:20px;text-shadow:0 2px 20px rgba(0,0,0,0.3);">
+                <h1 style="font-size:3rem;font-weight:900;line-height:1.1;margin-bottom:20px;">
                     Welcome to <span style="color:#fbbf24;">CLEDUN FC</span>
                 </h1>
                 
-                <p style="font-size:1.15rem;opacity:0.95;margin-bottom:30px;max-width:550px;line-height:1.7;text-shadow:0 2px 10px rgba(0,0,0,0.3);">
+                <p style="font-size:1.15rem;opacity:0.95;margin-bottom:30px;max-width:550px;line-height:1.7;">
                     Founded in <?php echo getSettings('club_established') ?: '2026'; ?>, we nurture young talent and build champions. 
                     Join us on our journey to compete globally!
                 </p>
@@ -79,7 +91,9 @@ $bannerPath = $heroBanner && file_exists(__DIR__ . '/uploads/banner/' . $heroBan
                 <!-- Quick Stats -->
                 <div style="display:flex;gap:35px;margin-top:40px;padding-top:30px;border-top:1px solid rgba(255,255,255,0.15);">
                     <div>
-                        <div style="font-size:2rem;font-weight:800;color:#fbbf24;">5</div>
+                        <div style="font-size:2rem;font-weight:800;color:#fbbf24;">
+                            <?php echo count($categories); ?>
+                        </div>
                         <div style="font-size:0.85rem;opacity:0.8;">Teams</div>
                     </div>
                     <div>
@@ -104,7 +118,7 @@ $bannerPath = $heroBanner && file_exists(__DIR__ . '/uploads/banner/' . $heroBan
             <div class="hero-badge" style="text-align:center;">
                 <img src="<?php echo SITE_URL; ?>assets/images/badge.png" 
                      alt="CLEDUN FC Badge" 
-                     style="max-width:300px;width:100%;filter:drop-shadow(0 20px 40px rgba(0,0,0,0.4));"
+                     style="max-width:320px;width:100%;filter:drop-shadow(0 20px 40px rgba(0,0,0,0.4));"
                      onerror="this.style.display='none'">
             </div>
         </div>
@@ -112,22 +126,28 @@ $bannerPath = $heroBanner && file_exists(__DIR__ . '/uploads/banner/' . $heroBan
 </section>
 
 <style>
-    @media (max-width: 768px) {
-        section[style*="min-height:600px"] h1 {
-            font-size: 2rem !important;
-        }
-        section[style*="min-height:600px"] > .container > div {
+    @media (max-width: 992px) {
+        section[style*="padding:70px 0"] .hero-content {
             grid-template-columns: 1fr !important;
+            text-align: center;
         }
-        .hero-badge {
-            order: -1;
+        section[style*="padding:70px 0"] .hero-content > div:first-child {
+            order: 2;
         }
-        .hero-badge img {
-            max-width: 180px !important;
+        section[style*="padding:70px 0"] .hero-badge {
+            order: 1;
+        }
+        section[style*="padding:70px 0"] h1 {
+            font-size: 2.2rem !important;
+        }
+        section[style*="padding:70px 0"] .hero-badge img {
+            max-width: 200px !important;
+        }
+        section[style*="padding:70px 0"] .hero-text > div:last-child {
+            justify-content: center;
         }
     }
 </style>
-
 <!-- Slideshow / Gallery Section -->
 <section style="padding: 60px 0; background: var(--light-bg);">
     <div class="container">
@@ -307,7 +327,7 @@ $bannerPath = $heroBanner && file_exists(__DIR__ . '/uploads/banner/' . $heroBan
         <div class="news-grid">
             <?php if (count($latestNews) > 0): ?>
                 <?php foreach ($latestNews as $news): ?>
-                <article class="news-card">
+                    <article class="news-card">
     <?php if ($news['featured_image']): ?>
         <div style="height:180px;overflow:hidden;">
             <img src="<?php echo SITE_URL; ?>uploads/news/<?php echo $news['featured_image']; ?>" 
@@ -409,17 +429,17 @@ $bannerPath = $heroBanner && file_exists(__DIR__ . '/uploads/banner/' . $heroBan
         <!-- Roadmap -->
         <div style="margin-top:40px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:24px;">
             <div style="background:var(--primary);color:var(--white);padding:30px;border-radius:var(--radius);text-align:center;border-left:4px solid var(--secondary);">
-                <div style="font-size:2.5rem;font-weight:800;color:var(--secondary);">2030</div>
+                <div style="font-size:2.5rem;font-weight:800;color:var(--secondary);">2028</div>
                 <h4 style="margin:10px 0 4px;">Norway Cup</h4>
                 <p style="font-size:0.85rem;opacity:0.7;">U10 & U12 Teams</p>
             </div>
             <div style="background:var(--primary);color:var(--white);padding:30px;border-radius:var(--radius);text-align:center;border-left:4px solid var(--secondary);">
-                <div style="font-size:2.5rem;font-weight:800;color:var(--secondary);">2031</div>
+                <div style="font-size:2.5rem;font-weight:800;color:var(--secondary);">2029</div>
                 <h4 style="margin:10px 0 4px;">Gothia Cup</h4>
                 <p style="font-size:0.85rem;opacity:0.7;">U15 Team</p>
             </div>
             <div style="background:var(--primary);color:var(--white);padding:30px;border-radius:var(--radius);text-align:center;border-left:4px solid var(--secondary);">
-                <div style="font-size:2.5rem;font-weight:800;color:var(--secondary);">2035</div>
+                <div style="font-size:2.5rem;font-weight:800;color:var(--secondary);">2030</div>
                 <h4 style="margin:10px 0 4px;">Own Facility</h4>
                 <p style="font-size:0.85rem;opacity:0.7;">Players in National Teams</p>
             </div>
@@ -480,8 +500,6 @@ $bannerPath = $heroBanner && file_exists(__DIR__ . '/uploads/banner/' . $heroBan
         </div>
     </div>
 </section>
-
-
 
 <!-- Video Highlights Section -->
 <section style="padding: 60px 0; background: var(--white);">
