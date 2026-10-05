@@ -7,6 +7,7 @@ $pageTitle = 'Register Player - ' . SITE_NAME;
 $db = getDB();
 $error = '';
 $success = '';
+$fieldErrors = [];  // ✅ Initialize this
 
 // Get active categories
 $categories = getActiveCategories();
@@ -42,51 +43,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $agreement   = isset($_POST['agreement']) ? 1 : 0;
 
     // === Validation ===
-    if ($category_id <= 0) {
-        $error = 'Please select a team category.';
-    } elseif (empty($first_name) || empty($last_name)) {
-        $error = 'First name and last name are required.';
-    } elseif (!in_array($gender, ['Male', 'Female'])) {
-        $error = 'Please select a gender.';
-    } elseif (empty($birth_date)) {
-        $error = 'Birth date is required.';
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL) && !empty($email)) {
-        $error = 'Please provide a valid email address.';
-    } elseif (!preg_match('/^[0-9+\s\-()]{7,20}$/', $phone)) {
-        $error = 'Please provide a valid phone number.';
-    } elseif (empty($nationality)) {
-        $error = 'Nationality is required.';
-    } elseif (empty($school)) {
-        $error = 'School/Kindergarten is required.';
-    } elseif (!$agreement) {
-        $fielderrors = 'You must read andaccept the membership terms 
-        and conditions before submitting.';
-    }
+    if ($category_id <= 0)                            $fieldErrors['category_id'] = 'Please select a team category.';
+    if (empty($first_name))                           $fieldErrors['first_name']  = 'First name is required.';
+    if (empty($last_name))                            $fieldErrors['last_name']   = 'Last name is required.';
+    if (!in_array($gender, ['Male', 'Female']))       $fieldErrors['gender']      = 'Please select a gender.';
+    if (empty($birth_date))                           $fieldErrors['birth_date']  = 'Birth date is required.';
+    if (!empty($email) && !filter_var($email, FILTER_VALIDATE_EMAIL))
+                                                      $fieldErrors['email']       = 'Please provide a valid email address.';
+    if (empty($phone) || !preg_match('/^[0-9+\s\-()]{7,20}$/', $phone))
+                                                      $fieldErrors['phone']       = 'Please provide a valid phone number.';
+    if (empty($nationality))                          $fieldErrors['nationality'] = 'Nationality is required.';
+    if (empty($school))                               $fieldErrors['school']      = 'School is required.';
+    if (!$agreement)                                  $fieldErrors['agreement']   = 'You must read and accept the membership terms before submitting.';
 
     // === Age auto-check ===
-    if (!$error) {
+    if (empty($fieldErrors['birth_date']) && $category_id > 0) {
         $birth = new DateTime($birth_date);
         $today = new DateTime();
         $age   = $today->diff($birth)->y;
 
-        // Find category
         $stmt = $db->prepare("SELECT * FROM categories WHERE id = ?");
         $stmt->execute([$category_id]);
         $cat = $stmt->fetch();
 
         if (!$cat) {
-            $error = 'Invalid team category.';
+            $fieldErrors['category_id'] = 'Invalid team category.';
         } else {
             $limit = $ageLimits[$cat['name']] ?? null;
             if ($limit && ($age < $limit['min'] || $age > $limit['max'])) {
-                $error = "Sorry, your age ($age) does not match the {$cat['name']} category (ages {$limit['min']}-{$limit['max']}).";
+                $fieldErrors['birth_date'] = "Age ($age) does not match {$cat['name']} ({$limit['min']}-{$limit['max']} years).";
             }
         }
     }
 
     // === Contact persons validation ===
     $contactPersons = [];
-    if (!$error && isset($_POST['contact_first_name']) && is_array($_POST['contact_first_name'])) {
+    if (isset($_POST['contact_first_name']) && is_array($_POST['contact_first_name'])) {
         foreach ($_POST['contact_first_name'] as $i => $cfn) {
             $cfn = trim($cfn);
             $cln = trim($_POST['contact_last_name'][$i] ?? '');
@@ -97,36 +89,64 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($cfn === '' && $cln === '') continue;
 
             if (empty($cfn) || empty($cln) || empty($cem) || empty($cph) || empty($cty)) {
-                $error = 'Please complete all required fields for each contact person.';
+                $fieldErrors['contacts'] = 'Please complete all fields for every contact person.';
                 break;
             }
             if (!filter_var($cem, FILTER_VALIDATE_EMAIL)) {
-                $error = 'Contact person email is invalid.';
+                $fieldErrors['contacts'] = 'One of the contact emails is invalid.';
                 break;
             }
             if (!preg_match('/^[0-9+\s\-()]{7,20}$/', $cph)) {
-                $error = 'Contact person phone is invalid.';
+                $fieldErrors['contacts'] = 'One of the contact phones is invalid.';
                 break;
             }
 
             $contactPersons[] = [
-                'first_name'   => $cfn,
-                'last_name'    => $cln,
-                'email'        => $cem,
-                'phone'        => $cph,
+                'first_name' => $cfn,
+                'last_name'  => $cln,
+                'email'      => $cem,
+                'phone'      => $cph,
                 'contact_type' => $cty,
             ];
         }
 
-        if (empty($contactPersons) && !$error) {
-            $error = 'Please add at least one emergency contact person.';
+        if (empty($contactPersons) && empty($fieldErrors['contacts'])) {
+            $fieldErrors['contacts'] = 'Please add at least one emergency contact.';
         }
-    } elseif (!$error) {
-        $error = 'Please add at least one emergency contact person.';
+    } else {
+        $fieldErrors['contacts'] = 'Please add at least one emergency contact.';
     }
 
-    // === Save to DB ===
-    if (!$error) {
+    // === Handle Birth Certificate Upload (Optional) ===
+    $birthCertFile = null;
+    if (isset($_FILES['birth_certificate']) && $_FILES['birth_certificate']['error'] === UPLOAD_ERR_OK) {
+        $uploadDir = __DIR__ . '/uploads/birth-certificates/';
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
+        
+        $allowed = ['pdf', 'jpg', 'jpeg', 'png'];
+        $fileExt = strtolower(pathinfo($_FILES['birth_certificate']['name'], PATHINFO_EXTENSION));
+        $fileSize = $_FILES['birth_certificate']['size'];
+        
+        if (!in_array($fileExt, $allowed)) {
+            $fieldErrors['birth_certificate'] = 'Invalid file format. Allowed: PDF, JPG, PNG.';
+        } elseif ($fileSize > 5 * 1024 * 1024) {
+            $fieldErrors['birth_certificate'] = 'File too large. Maximum size is 5MB.';
+        } else {
+            $fileName = 'birthcert_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $fileExt;
+            $targetPath = $uploadDir . $fileName;
+            
+            if (move_uploaded_file($_FILES['birth_certificate']['tmp_name'], $targetPath)) {
+                $birthCertFile = $fileName;
+            } else {
+                $fieldErrors['birth_certificate'] = 'Failed to upload file. Please try again.';
+            }
+        }
+    }
+
+    // === Save to DB (only if no errors) ===
+    if (empty($fieldErrors)) {
         try {
             $db->beginTransaction();
 
@@ -134,13 +154,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 INSERT INTO player_registrations
                 (category_id, first_name, last_name, gender, birth_date, language, nationality,
                  email, phone, allergies, medical_comment, school, notify_by, referral_source,
-                 signatory_name, agreement_accepted, status)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+                 signatory_name, agreement_accepted, birth_certificate, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
             ");
             $stmt->execute([
                 $category_id, $first_name, $last_name, $gender, $birth_date,
                 $language, $nationality, $email, $phone, $allergies, $medical,
-                $school, $notify_by, $referral, $signatory, $agreement
+                $school, $notify_by, $referral, $signatory, $agreement, $birthCertFile
             ]);
 
             $regId = $db->lastInsertId();
@@ -154,28 +174,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->execute([$regId, $cp['first_name'], $cp['last_name'], $cp['email'], $cp['phone'], $cp['contact_type']]);
             }
 
-           $db->commit();
+            $db->commit();
 
-          // Notify admin about new registration
+            // Notify admin about new registration
             require_once 'includes/notifications.php';
-               notifyAdminNewRegistration([
-                 'id' => $regId,
-                 'first_name' => $first_name,
-                 'last_name' => $last_name,
-                 'birth_date' => $birth_date,
-                 'nationality' => $nationality,
-                 'email' => $email,
-                 'phone' => $phone
-             ], $cat['name'] ?? 'Team');
+            notifyAdminNewRegistration([
+                'id' => $regId,
+                'first_name' => $first_name,
+                'last_name' => $last_name,
+                'birth_date' => $birth_date,
+                'nationality' => $nationality,
+                'email' => $email,
+                'phone' => $phone
+            ], $cat['name'] ?? 'Team');
 
-               $_SESSION['reg_success'] = ['name' => $first_name . ' ' . $last_name, 'id' => $regId];
-              header('Location: register-player-success.php');
-             exit;
+            $_SESSION['reg_success'] = ['name' => $first_name . ' ' . $last_name, 'id' => $regId];
+            header('Location: register-player-success.php');
+            exit;
 
         } catch (Exception $e) {
             $db->rollBack();
-            $error = 'Something went wrong. Please try again.';
+            $error = 'Something went wrong: ' . $e->getMessage();
         }
+    } else {
+        $error = 'Please fix the errors below.';
     }
 }
 
@@ -199,11 +221,18 @@ require_once 'includes/header.php';
         <div style="display:grid;grid-template-columns:2fr 1fr;gap:30px;align-items:start;">
 
             <!-- FORM -->
-            <form method="POST" id="regForm" style="background:var(--white);padding:35px;border-radius:var(--radius);box-shadow:var(--shadow);">
+            <form method="POST" id="regForm" enctype="multipart/form-data" style="background:var(--white);padding:35px;border-radius:var(--radius);box-shadow:var(--shadow);">
 
                 <?php if ($error): ?>
                     <div class="alert alert-error" style="background:#fef2f2;color:#991b1b;padding:14px;border-left:4px solid #ef4444;border-radius:8px;margin-bottom:20px;">
-                        ⚠️ <?php echo $error; ?>
+                        <strong>⚠️ <?php echo $error; ?></strong>
+                        <?php if (!empty($fieldErrors)): ?>
+                            <ul style="margin:10px 0 0 20px;font-size:0.9rem;">
+                                <?php foreach ($fieldErrors as $msg): ?>
+                                    <li><?php echo htmlspecialchars($msg); ?></li>
+                                <?php endforeach; ?>
+                            </ul>
+                        <?php endif; ?>
                     </div>
                 <?php endif; ?>
 
@@ -213,33 +242,32 @@ require_once 'includes/header.php';
                 <div class="form-row">
                     <div class="form-group">
                         <label>First Name *</label>
-                        <input type="text" name="first_name" class="form-control" required>
+                        <input type="text" name="first_name" class="form-control" value="<?php echo htmlspecialchars($_POST['first_name'] ?? ''); ?>">
                     </div>
                     <div class="form-group">
                         <label>Last Name *</label>
-                        <input type="text" name="last_name" class="form-control" required>
+                        <input type="text" name="last_name" class="form-control" value="<?php echo htmlspecialchars($_POST['last_name'] ?? ''); ?>">
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
                         <label>Team Category *</label>
-                        <select name="category_id" id="category_id" class="form-control" required>
+                        <select name="category_id" id="category_id" class="form-control">
                             <option value="">Select category</option>
-                            <?php foreach ($categories as $cat): ?>
-                                <option value="<?php echo $cat['id']; ?>">
-                                    <?php echo $cat['icon'] ?? '⚽'; ?> <?php echo $cat['name']; ?>
-                                    (<?php echo $cat['age_group']; ?>)
+                            <?php foreach ($categories as $catOpt): ?>
+                                <option value="<?php echo $catOpt['id']; ?>" <?php echo (($_POST['category_id'] ?? '') == $catOpt['id']) ? 'selected' : ''; ?>>
+                                    <?php echo $catOpt['icon'] ?? '⚽'; ?> <?php echo $catOpt['name']; ?> (<?php echo $catOpt['age_group']; ?>)
                                 </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
                     <div class="form-group">
                         <label>Gender *</label>
-                        <select name="gender" class="form-control" required>
+                        <select name="gender" class="form-control">
                             <option value="">Select</option>
-                            <option value="Male">Male</option>
-                            <option value="Female">Female</option>
+                            <option value="Male" <?php echo (($_POST['gender'] ?? '') == 'Male') ? 'selected' : ''; ?>>Male</option>
+                            <option value="Female" <?php echo (($_POST['gender'] ?? '') == 'Female') ? 'selected' : ''; ?>>Female</option>
                         </select>
                     </div>
                 </div>
@@ -247,23 +275,23 @@ require_once 'includes/header.php';
                 <div class="form-row">
                     <div class="form-group">
                         <label>Birth Date *</label>
-                        <input type="date" name="birth_date" id="birth_date" class="form-control" required>
+                        <input type="date" name="birth_date" id="birth_date" class="form-control" value="<?php echo htmlspecialchars($_POST['birth_date'] ?? ''); ?>">
                         <small id="ageInfo" style="color:var(--gray-text);font-size:0.8rem;"></small>
                     </div>
                     <div class="form-group">
                         <label>Nationality *</label>
-                        <input type="text" name="nationality" class="form-control" placeholder="e.g., Kenyan" required>
+                        <input type="text" name="nationality" class="form-control" placeholder="e.g., Kenyan" value="<?php echo htmlspecialchars($_POST['nationality'] ?? ''); ?>">
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
                         <label>Language</label>
-                        <input type="text" name="language" class="form-control" placeholder="e.g., English, Swahili">
+                        <input type="text" name="language" class="form-control" value="<?php echo htmlspecialchars($_POST['language'] ?? ''); ?>">
                     </div>
                     <div class="form-group">
                         <label>School / Kindergarten *</label>
-                        <input type="text" name="school" class="form-control" required>
+                        <input type="text" name="school" class="form-control" value="<?php echo htmlspecialchars($_POST['school'] ?? ''); ?>">
                     </div>
                 </div>
 
@@ -273,17 +301,17 @@ require_once 'includes/header.php';
                 <div class="form-row">
                     <div class="form-group">
                         <label>Email Address</label>
-                        <input type="email" name="email" class="form-control" placeholder="parent@email.com">
+                        <input type="email" name="email" class="form-control" value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>">
                     </div>
                     <div class="form-group">
                         <label>Phone Number *</label>
-                        <input type="tel" name="phone" class="form-control" placeholder="+254..." required>
+                        <input type="tel" name="phone" class="form-control" value="<?php echo htmlspecialchars($_POST['phone'] ?? ''); ?>" placeholder="+254...">
                     </div>
                 </div>
 
                 <!-- 3. Contact Persons -->
                 <h2 style="color:var(--primary);font-size:1.3rem;margin:30px 0 12px;border-bottom:2px solid var(--secondary);padding-bottom:8px;">🚨 Emergency Contact Person(s)</h2>
-                <p style="color:var(--gray-text);font-size:0.9rem;margin-bottom:15px;">In case of emergency, make sure your club knows who to contact.</p>
+                <p style="color:var(--gray-text);font-size:0.9rem;margin-bottom:15px;">In case of emergency, please provide a contact person.</p>
 
                 <div id="contactPersons"></div>
 
@@ -296,11 +324,27 @@ require_once 'includes/header.php';
 
                 <div class="form-group">
                     <label>Allergies & Intolerance</label>
-                    <textarea name="allergies" class="form-control" rows="2" placeholder="Any allergies we should know about?"></textarea>
+                    <textarea name="allergies" class="form-control" rows="2"><?php echo htmlspecialchars($_POST['allergies'] ?? ''); ?></textarea>
                 </div>
                 <div class="form-group">
                     <label>Medical Comment</label>
-                    <textarea name="medical_comment" class="form-control" rows="2" placeholder="Medical conditions, medication, etc."></textarea>
+                    <textarea name="medical_comment" class="form-control" rows="2"><?php echo htmlspecialchars($_POST['medical_comment'] ?? ''); ?></textarea>
+                </div>
+
+                <!-- 4b. Documents -->
+                <div style="background:#dbeafe;padding:20px;border-radius:10px;margin-bottom:25px;border-left:4px solid #3b82f6;">
+                    <h3 style="color:var(--primary);font-size:1.05rem;margin-bottom:12px;">📄 Birth Certificate (Optional)</h3>
+                    <p style="color:var(--gray-text);font-size:0.85rem;margin-bottom:12px;">
+                        Upload a copy of the player's birth certificate. This is optional but helps us verify age for competitions.
+                    </p>
+                    <div class="form-group">
+                        <label>Attach Birth Certificate</label>
+                        <input type="file" name="birth_certificate" class="form-control" accept=".pdf,.jpg,.jpeg,.png" style="padding:8px;">
+                        <small style="color:var(--gray-text);">Accepted: PDF, JPG, PNG · Max 5MB</small>
+                        <?php if (!empty($fieldErrors['birth_certificate'])): ?>
+                            <small style="color:#ef4444;display:block;margin-top:4px;"><?php echo $fieldErrors['birth_certificate']; ?></small>
+                        <?php endif; ?>
+                    </div>
                 </div>
 
                 <!-- 5. Other -->
@@ -308,59 +352,52 @@ require_once 'includes/header.php';
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Notify me about RSVP and event updates by</label>
+                        <label>Notify me by</label>
                         <select name="notify_by" class="form-control">
-                            <option value="Email">Email</option>
-                            <option value="SMS">SMS</option>
-                            <option value="WhatsApp">WhatsApp</option>
-                            <option value="Phone">Phone</option>
+                            <option>Email</option><option>SMS</option><option>WhatsApp</option><option>Phone</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label>How did you find us?</label>
                         <select name="referral_source" class="form-control">
                             <option value="">Select</option>
-                            <option value="Google Search">Google Search</option>
-                            <option value="Facebook">Facebook</option>
-                            <option value="Instagram">Instagram</option>
-                            <option value="WhatsApp">WhatsApp</option>
-                            <option value="Friend/Family">Friend / Family</option>
-                            <option value="School">School</option>
-                            <option value="Event">Event</option>
-                            <option value="Other">Other</option>
+                            <option>Google Search</option>
+                            <option>Facebook</option>
+                            <option>Instagram</option>
+                            <option>WhatsApp</option>
+                            <option>Friend/Family</option>
+                            <option>School</option>
+                            <option>Event</option>
+                            <option>Other</option>
                         </select>
                     </div>
                 </div>
 
                 <!-- 6. Terms -->
-<h2 style="color:var(--primary);font-size:1.3rem;margin:30px 0 20px;border-bottom:2px solid var(--secondary);padding-bottom:8px;">📜 Membership Terms and Conditions</h2>
+                <h2 style="color:var(--primary);font-size:1.3rem;margin:30px 0 20px;border-bottom:2px solid var(--secondary);padding-bottom:8px;">📜 Membership Terms and Conditions</h2>
 
-<div class="form-group">
-    <label>Signatory Name *</label>
-    <input type="text" name="signatory_name" class="form-control" value="<?php echo htmlspecialchars($_POST['signatory_name'] ?? ''); ?>" placeholder="Parent / Guardian full name">
-    <?php if (!empty($fieldErrors['signatory_name'])): ?><small style="color:#ef4444;"><?php echo $fieldErrors['signatory_name']; ?></small><?php endif; ?>
-</div>
+                <div class="form-group">
+                    <label>Signatory Name *</label>
+                    <input type="text" name="signatory_name" class="form-control" value="<?php echo htmlspecialchars($_POST['signatory_name'] ?? ''); ?>" placeholder="Parent / Guardian full name">
+                </div>
 
-<!-- Terms Preview Box -->
-<div style="background:#f8fafc;border:2px solid #e5e7eb;border-radius:10px;padding:20px;margin-bottom:20px;max-height:250px;overflow-y:auto;">
-    <h4 style="color:var(--primary);margin-bottom:12px;font-size:1rem;">📄 Terms & Conditions</h4>
-    <div style="color:var(--gray-text);font-size:0.9rem;line-height:1.7;white-space:pre-wrap;"><?php echo htmlspecialchars(getSettings('registration_terms') ?: 'No terms set. Please contact the admin.'); ?></div>
-</div>
+                <!-- Terms Preview Box -->
+                <div style="background:#f8fafc;border:2px solid #e5e7eb;border-radius:10px;padding:20px;margin-bottom:20px;max-height:250px;overflow-y:auto;">
+                    <h4 style="color:var(--primary);margin-bottom:12px;font-size:1rem;">📄 Terms & Conditions</h4>
+                    <div style="color:var(--gray-text);font-size:0.9rem;line-height:1.7;white-space:pre-wrap;"><?php echo htmlspecialchars(getSettings('registration_terms') ?: 'No terms set. Please contact the admin.'); ?></div>
+                </div>
 
-<!-- Agreement Checkbox -->
-<div style="background:#fef3c7;padding:18px;border-radius:10px;margin-bottom:20px;border-left:4px solid #f59e0b;">
-    <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;font-weight:600;">
-        <input type="checkbox" name="agreement" value="1" <?php echo isset($_POST['agreement'])?'checked':''; ?> style="margin-top:4px;width:20px;height:20px;cursor:pointer;">
-        <span style="font-size:0.95rem;">I confirm that I am the parent / legal guardian and I have read and agree to all the CLEDUN FC membership terms and conditions above. *</span>
-    </label>
-    <?php if (!empty($fieldErrors['agreement'])): ?><small style="color:#ef4444;display:block;margin-top:8px;"><?php echo $fieldErrors['agreement']; ?></small><?php endif; ?>
-</div>
-
+                <!-- Agreement Checkbox -->
+                <div style="background:#fef3c7;padding:18px;border-radius:10px;margin-bottom:20px;border-left:4px solid #f59e0b;">
+                    <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;font-weight:600;">
+                        <input type="checkbox" name="agreement" value="1" <?php echo isset($_POST['agreement'])?'checked':''; ?> style="margin-top:4px;width:20px;height:20px;cursor:pointer;">
+                        <span style="font-size:0.95rem;">I confirm that I am the parent / legal guardian and I have read and agree to all the CLEDUN FC membership terms and conditions above. *</span>
+                    </label>
+                </div>
 
                 <button type="submit" class="btn btn-primary" style="width:100%;padding:14px;font-size:1rem;">
                     ✅ Submit Registration
                 </button>
-
             </form>
 
             <!-- SIDEBAR -->
@@ -371,12 +408,12 @@ require_once 'includes/header.php';
                     <li><i class="fas fa-check" style="color:#10b981;"></i> Contact information</li>
                     <li><i class="fas fa-check" style="color:#10b981;"></i> Emergency contacts</li>
                     <li><i class="fas fa-check" style="color:#10b981;"></i> Medical information</li>
-                    <li><i class="fas fa-check" style="color:#10b981;"></i> Personal information</li>
+                    <li><i class="fas fa-check" style="color:#10b981;"></i> Birth certificate (optional)</li>
                     <li><i class="fas fa-check" style="color:#10b981;"></i> Terms & Conditions</li>
                 </ul>
 
                 <div style="background:#dbeafe;padding:15px;border-radius:8px;margin-top:20px;font-size:0.85rem;">
-                    <strong>💡 Tip:</strong> All fields marked with an asterisk (*) are required. Your application will only be submitted after acceptance of terms.
+                    <strong>💡 Tip:</strong> All fields marked with * are required.
                 </div>
 
                 <div style="margin-top:20px;font-size:0.85rem;color:var(--gray-text);">
@@ -400,8 +437,8 @@ const ageLimits = {
 };
 
 const categoryNames = {
-    <?php foreach ($categories as $cat): ?>
-    '<?php echo $cat['id']; ?>': '<?php echo $cat['name']; ?>',
+    <?php foreach ($categories as $catOpt): ?>
+    '<?php echo $catOpt['id']; ?>': '<?php echo $catOpt['name']; ?>',
     <?php endforeach; ?>
 };
 
@@ -466,20 +503,14 @@ function addContact() {
                 <label>Contact Type *</label>
                 <select name="contact_type[]" class="form-control" required>
                     <option value="">Select</option>
-                    <option value="Parent">Parent</option>
-                    <option value="Guardian">Guardian</option>
-                    <option value="Sibling">Sibling</option>
-                    <option value="Relative">Relative</option>
-                    <option value="Other">Other</option>
+                    <option>Parent</option><option>Guardian</option><option>Sibling</option>
+                    <option>Relative</option><option>Other</option>
                 </select>
             </div>
-        </div>
-    `;
+        </div>`;
     document.getElementById('contactPersons').insertAdjacentHTML('beforeend', html);
     contactIndex++;
 }
-
-// Add first contact by default
 document.addEventListener('DOMContentLoaded', addContact);
 </script>
 
