@@ -28,6 +28,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     'contact_email' => sanitize($_POST['contact_email']),
     'contact_phone' => sanitize($_POST['contact_phone'])
 ];
+
+// === Handle Hero Banner Upload ===
+if (isset($_FILES['hero_banner']) && $_FILES['hero_banner']['error'] === UPLOAD_ERR_OK) {
+    $uploadDir = __DIR__ . '/../uploads/banner/';
+    if (!is_dir($uploadDir)) {
+        mkdir($uploadDir, 0755, true);
+    }
+    
+    $allowed = ['jpg', 'jpeg', 'png', 'webp'];
+    $fileExt = strtolower(pathinfo($_FILES['hero_banner']['name'], PATHINFO_EXTENSION));
+    $fileSize = $_FILES['hero_banner']['size'];
+    
+    if (in_array($fileExt, $allowed) && $fileSize <= 5 * 1024 * 1024) {
+        $fileName = 'hero_' . time() . '.' . $fileExt;
+        $targetPath = $uploadDir . $fileName;
+        
+        if (move_uploaded_file($_FILES['hero_banner']['tmp_name'], $targetPath)) {
+            // Delete old banner if exists
+            $oldBanner = getSettings('hero_banner');
+            if ($oldBanner && file_exists($uploadDir . $oldBanner)) {
+                unlink($uploadDir . $oldBanner);
+            }
+            $settings['hero_banner'] = $fileName;
+        }
+    }
+}
     
     try {
         foreach ($settings as $key => $value) {
