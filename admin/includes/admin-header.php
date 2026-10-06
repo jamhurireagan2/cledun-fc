@@ -580,6 +580,13 @@ $db = getDB();
 <li><a href="category-updates.php" class="<?php echo strpos($_SERVER['PHP_SELF'], 'category-updates') !== false ? 'active' : ''; ?>">
     <i class="fas fa-pen-fancy"></i> Team Updates
 </a></li>
+
+            <li><a href="category-content.php" class="<?php echo strpos($_SERVER['PHP_SELF'], 'category-content') !== false ? 'active' : ''; ?>">
+    <i class="fas fa-book-open"></i> Team Descriptions
+</a></li>
+<li><a href="category-updates.php" class="<?php echo strpos($_SERVER['PHP_SELF'], 'category-updates') !== false ? 'active' : ''; ?>">
+    <i class="fas fa-pen-fancy"></i> Team Updates
+</a></li>
             <!-- ========================================= -->
             <!-- GALLERY TAB - ADDED HERE -->
             <!-- ========================================= -->
