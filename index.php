@@ -80,9 +80,7 @@ $bannerExists = $heroBanner && file_exists(__DIR__ . '/uploads/banner/' . $heroB
                     <a href="<?php echo SITE_URL; ?>tickets.php" class="btn btn-primary" style="font-size:1rem;padding:14px 28px;">
                         🎟️ Get Tickets
                     </a>
-                    <a href="<?php echo SITE_URL; ?>squad.php" class="btn btn-secondary" style="font-size:1rem;padding:14px 28px;border-color:white;color:white;">
-                        Meet the Squad
-                    </a>
+        
                     <a href="<?php echo SITE_URL; ?>register-player.php" class="btn btn-primary" style="background:#10b981;color:#fff;font-size:1rem;padding:14px 28px;">
                         📝 Register Player
                     </a>
