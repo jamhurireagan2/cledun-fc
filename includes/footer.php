@@ -16,8 +16,7 @@
                 <div>
                     <h4 style="color:#fbbf24;font-size:1.1rem;margin-bottom:15px;">Quick Links</h4>
                     <ul style="list-style:none;padding:0;">
-                        <li style="margin-bottom:8px;"><a href="<?php echo SITE_URL; ?>squad.php" style="color:#e5e7eb;text-decoration:none;opacity:0.8;">Squad</a></li>
-                        <li style="margin-bottom:8px;"><a href="<?php echo SITE_URL; ?>matches.php" style="color:#e5e7eb;text-decoration:none;opacity:0.8;">Matches</a></li>
+<!-- <li style="margin-bottom:8px;"><a href="<?php echo SITE_URL; ?>squad.php" style="color:#e5e7eb;text-decoration:none;opacity:0.8;">Squad</a></li> -->                        <li style="margin-bottom:8px;"><a href="<?php echo SITE_URL; ?>matches.php" style="color:#e5e7eb;text-decoration:none;opacity:0.8;">Matches</a></li>
                         <li style="margin-bottom:8px;"><a href="<?php echo SITE_URL; ?>news.php" style="color:#e5e7eb;text-decoration:none;opacity:0.8;">News</a></li>
                         <li style="margin-bottom:8px;"><a href="<?php echo SITE_URL; ?>tickets.php" style="color:#e5e7eb;text-decoration:none;opacity:0.8;">Tickets</a></li>
                     </ul>
@@ -54,6 +53,21 @@
                             <i class="fas fa-map-marker-alt"></i> <?php echo getSettings('stadium_location') ?: 'Farasi Lane Primary School'; ?>
                         </li>
                     </ul>
+                    <?php 
+$fbUrl = getSettings('social_facebook');
+if ($fbUrl): 
+?>
+<div style="margin-top:15px;">
+    <h4 style="color:#fbbf24;font-size:1rem;margin-bottom:10px;">Follow Us</h4>
+    <a href="<?php echo htmlspecialchars($fbUrl); ?>" target="_blank" 
+       style="display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;background:#1877f2;border-radius:50%;color:white;text-decoration:none;transition:transform 0.3s;"
+       onmouseover="this.style.transform='scale(1.1)'"
+       onmouseout="this.style.transform='scale(1)'"
+       title="Facebook">
+        <i class="fab fa-facebook-f"></i>
+    </a>
+</div>
+<?php endif; ?>
                 </div>
             </div>
             

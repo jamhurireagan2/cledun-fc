@@ -72,6 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'map_zoom'         => intval($_POST['map_zoom'] ?? 15),
             'contact_email'    => sanitize($_POST['contact_email'] ?? ''),
             'contact_phone'    => sanitize($_POST['contact_phone'] ?? ''),
+            'social_facebook' => sanitize($_POST['social_facebook'] ?? ''),
         ];
 
         foreach ($settings as $key => $value) {
@@ -227,6 +228,20 @@ require_once 'includes/admin-header.php';
             <hr style="margin:25px 0;border-color:#e5e7eb;">
 
             <h3 style="color:var(--admin-dark);margin-bottom:15px;">📞 Contact Information</h3>
+
+            <h3 style="color:var(--admin-dark);margin-bottom:15px;">📱 Social Media</h3>
+
+<div class="form-group">
+    <label>Facebook Page URL</label>
+    <input type="url" name="social_facebook" class="form-control" 
+           value="<?php echo $settings['social_facebook'] ?? ''; ?>" 
+           placeholder="https://facebook.com/your-page">
+    <small style="color:var(--admin-gray);">Full URL to your Facebook page</small>
+</div>
+
+<hr style="margin:25px 0;border-color:#e5e7eb;">
+
+            
 
             <div class="form-row">
                 <div class="form-group">

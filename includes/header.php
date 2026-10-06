@@ -328,6 +328,20 @@
                 <li><a href="<?php echo SITE_URL; ?>about.php" class="<?php echo ($currentPage ?? '') === 'about' ? 'active' : ''; ?>">About</a></li>
                 <li><a href="<?php echo SITE_URL; ?>contact.php" class="<?php echo ($currentPage ?? '') === 'contact' ? 'active' : ''; ?>">Contact</a></li>
                 <li><a href="<?php echo SITE_URL; ?>register-player.php" class="<?php echo ($currentPage ?? '') === 'register' ? 'active' : ''; ?>">📝 Register</a></li>
+                <?php 
+$fbUrl = getSettings('social_facebook');
+if ($fbUrl): 
+?>
+<li>
+    <a href="<?php echo htmlspecialchars($fbUrl); ?>" target="_blank" 
+       style="display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;background:#1877f2;border-radius:50%;color:white !important;transition:transform 0.3s;"
+       onmouseover="this.style.transform='scale(1.1)'"
+       onmouseout="this.style.transform='scale(1)'"
+       title="Follow us on Facebook">
+        <i class="fab fa-facebook-f" style="font-size:1rem;"></i>
+    </a>
+</li>
+<?php endif; ?>
                 <li><a href="<?php echo SITE_URL; ?>tickets.php" class="btn btn-primary" style="background:#fbbf24;color:#1a2a6c;padding:10px 20px;border-radius:8px;text-align:center;">🎟️ Tickets</a></li>
             </ul>
         </div>

@@ -153,6 +153,19 @@ require_once 'includes/header.php';
                             </a>
                         </li>
                     </ul>
+
+                    <?php 
+$fbUrl = getSettings('social_facebook');
+if ($fbUrl): 
+?>
+<div style="background:var(--white);padding:25px;border-radius:var(--radius);box-shadow:var(--shadow);margin-top:20px;">
+    <h3 style="color:var(--primary);margin-bottom:15px;">📱 Follow Us</h3>
+    <a href="<?php echo htmlspecialchars($fbUrl); ?>" target="_blank" 
+       style="display:inline-flex;align-items:center;gap:10px;padding:12px 20px;background:#1877f2;color:white;border-radius:8px;text-decoration:none;font-weight:600;">
+        <i class="fab fa-facebook-f" style="font-size:1.2rem;"></i> Facebook Page
+    </a>
+</div>
+<?php endif; ?>
                 </div>
             </div>
 
