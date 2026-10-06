@@ -18,7 +18,6 @@ $success = '';
 if (isset($_GET['delete']) && is_numeric($_GET['delete'])) {
     $id = intval($_GET['delete']);
     
-    // Get image path to delete file
     $stmt = $db->prepare("SELECT image_path FROM gallery WHERE id = ?");
     $stmt->execute([$id]);
     $image = $stmt->fetch();
@@ -48,10 +47,11 @@ if (isset($_GET['toggle']) && is_numeric($_GET['toggle'])) {
 
 // Handle upload
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['image'])) {
-    $title = sanitize($_POST['title']);
-    $category = sanitize($_POST['category']);
+    $title         = sanitize($_POST['title']);
+    $category      = sanitize($_POST['category']);
+    $category_id   = !empty($_POST['category_id']) ? intval($_POST['category_id']) : null;
     $display_order = intval($_POST['display_order']);
-    $uploaded_by = $_SESSION['user_id'];
+    $uploaded_by   = $_SESSION['user_id'];
     
     $uploadDir = '../uploads/gallery/';
     if (!is_dir($uploadDir)) {
@@ -67,8 +67,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['image'])) {
             $uploadPath = $uploadDir . $fileName;
             
             if (move_uploaded_file($_FILES['image']['tmp_name'], $uploadPath)) {
-                $stmt = $db->prepare("INSERT INTO gallery (title, image_path, category, display_order, uploaded_by) VALUES (?, ?, ?, ?, ?)");
-                $stmt->execute([$title, $fileName, $category, $display_order, $uploaded_by]);
+                $stmt = $db->prepare("INSERT INTO gallery (category_id, title, image_path, category, display_order, uploaded_by) VALUES (?, ?, ?, ?, ?, ?)");
+                $stmt->execute([$category_id, $title, $fileName, $category, $display_order, $uploaded_by]);
                 $success = 'Image uploaded successfully!';
             } else {
                 $error = 'Failed to upload image.';
@@ -81,11 +81,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['image'])) {
     }
 }
 
-// Get all gallery images
+// Get all gallery images with team info
 $images = $db->query("
-    SELECT g.*, u.full_name as uploader_name 
+    SELECT g.*, u.full_name as uploader_name, c.name as team_name, c.icon as team_icon
     FROM gallery g 
     LEFT JOIN users u ON g.uploaded_by = u.id 
+    LEFT JOIN categories c ON g.category_id = c.id
     ORDER BY g.display_order ASC, g.created_at DESC
 ")->fetchAll();
 
@@ -134,6 +135,21 @@ require_once 'includes/admin-header.php';
                     </select>
                 </div>
                 <div class="form-group">
+                    <label>Team (Optional)</label>
+                    <select name="category_id" class="form-control">
+                        <option value="">All Teams (General)</option>
+                        <?php 
+                        $cats = getActiveCategories();
+                        foreach ($cats as $cat): 
+                        ?>
+                            <option value="<?php echo $cat['id']; ?>">
+                                <?php echo $cat['icon'] ?? '⚽'; ?> <?php echo $cat['name']; ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <small style="color:var(--admin-gray);">Leave blank for general photos, or tie to a specific team</small>
+                </div>
+                <div class="form-group">
                     <label>Display Order</label>
                     <input type="number" name="display_order" class="form-control" value="0">
                     <small style="color:var(--admin-gray);">Lower numbers appear first</small>
@@ -163,6 +179,11 @@ require_once 'includes/admin-header.php';
                         <?php if (!$image['is_active']): ?>
                             <div style="position:absolute;top:10px;right:10px;background:#ef4444;color:white;padding:2px 12px;border-radius:12px;font-size:0.7rem;font-weight:600;">
                                 Hidden
+                            </div>
+                        <?php endif; ?>
+                        <?php if (!empty($image['team_name'])): ?>
+                            <div style="position:absolute;bottom:10px;left:10px;background:rgba(26,42,108,0.9);color:white;padding:3px 10px;border-radius:12px;font-size:0.7rem;font-weight:600;">
+                                <?php echo $image['team_icon'] ?? '⚽'; ?> <?php echo $image['team_name']; ?>
                             </div>
                         <?php endif; ?>
                     </div>
