@@ -472,11 +472,11 @@ $bannerExists = $heroBanner && file_exists(__DIR__ . '/uploads/banner/' . $heroB
                         </a>
                     </p>
                     <p style="margin-bottom:10px;"><strong>📱 Phone:</strong><br>
-                        <?php echo getSettings('contact_phone') ?: '+254 710 339 213'; ?>
+                        <?php echo getSettings('contact_phone') ?: '0710339213'; ?>
                     </p>
                 </div>
                 
-                <a href="https://www.google.com/maps/search/?api=1&query=<?php echo getSettings('map_latitude') ?? '-1.2921'; ?>,<?php echo getSettings('map_longitude') ?? '36.8219'; ?>" 
+                <a href="https://www.google.com/maps/dir/?api=1&destination=<?php echo urlencode((getSettings('stadium_name') ?: 'Farasi Lane') . ' ' . (getSettings('stadium_location') ?: 'Primary School') . ' Nairobi'); ?>" 
                    target="_blank" 
                    class="btn btn-primary" 
                    style="margin-top:20px;width:100%;text-align:center;">
@@ -484,13 +484,16 @@ $bannerExists = $heroBanner && file_exists(__DIR__ . '/uploads/banner/' . $heroB
                 </a>
             </div>
             
-            <!-- Map Embed -->
+            <!-- Map Embed (with place name for working marker) -->
             <div style="background:var(--white);padding:15px;border-radius:var(--radius);box-shadow:var(--shadow);">
+                <?php 
+                $mapQuery = urlencode((getSettings('stadium_name') ?: 'Farasi Lane') . ' ' . (getSettings('stadium_location') ?: 'Primary School') . ' Nairobi Kenya');
+                ?>
                 <iframe 
                     width="100%" 
                     height="450" 
                     style="border:0;border-radius:8px;"
-                    src="https://www.google.com/maps?q=<?php echo getSettings('map_latitude') ?? '-1.2921'; ?>,<?php echo getSettings('map_longitude') ?? '36.8219'; ?>&z=<?php echo getSettings('map_zoom') ?? '15'; ?>&output=embed"
+                    src="https://www.google.com/maps?q=<?php echo $mapQuery; ?>&z=<?php echo getSettings('map_zoom') ?? '16'; ?>&output=embed"
                     allowfullscreen
                     loading="lazy">
                 </iframe>

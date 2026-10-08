@@ -81,6 +81,59 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['image'])) {
     }
 }
 
+// Handle edit
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_gallery'])) {
+    $id            = intval($_POST['id'] ?? 0);
+    $title         = sanitize($_POST['edit_title'] ?? '');
+    $category      = sanitize($_POST['edit_category'] ?? 'general');
+    $category_id   = !empty($_POST['edit_category_id']) ? intval($_POST['edit_category_id']) : null;
+    $display_order = intval($_POST['edit_display_order'] ?? 0);
+    $is_active     = isset($_POST['edit_is_active']) ? 1 : 0;
+
+    // Optional image replacement
+    $newImageName = null;
+    if (isset($_FILES['edit_image']) && $_FILES['edit_image']['error'] === UPLOAD_ERR_OK) {
+        $uploadDir = '../uploads/gallery/';
+        $fileExt = strtolower(pathinfo($_FILES['edit_image']['name'], PATHINFO_EXTENSION));
+        $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+
+        if (in_array($fileExt, $allowed)) {
+            $newImageName = time() . '_' . createSlug($title) . '.' . $fileExt;
+
+            if (move_uploaded_file($_FILES['edit_image']['tmp_name'], $uploadDir . $newImageName)) {
+                $stmt = $db->prepare("SELECT image_path FROM gallery WHERE id = ?");
+                $stmt->execute([$id]);
+                $old = $stmt->fetch();
+                if ($old && $old['image_path'] && file_exists($uploadDir . $old['image_path'])) {
+                    @unlink($uploadDir . $old['image_path']);
+                }
+            } else {
+                $newImageName = null;
+            }
+        }
+    }
+
+    if ($newImageName) {
+        $stmt = $db->prepare("
+            UPDATE gallery 
+            SET title = ?, category = ?, category_id = ?, display_order = ?, is_active = ?, image_path = ?
+            WHERE id = ?
+        ");
+        $stmt->execute([$title, $category, $category_id, $display_order, $is_active, $newImageName, $id]);
+    } else {
+        $stmt = $db->prepare("
+            UPDATE gallery 
+            SET title = ?, category = ?, category_id = ?, display_order = ?, is_active = ?
+            WHERE id = ?
+        ");
+        $stmt->execute([$title, $category, $category_id, $display_order, $is_active, $id]);
+    }
+
+    setFlash('success', 'Image updated successfully!');
+    header('Location: gallery.php');
+    exit();
+}
+
 // Get all gallery images with team info
 $images = $db->query("
     SELECT g.*, u.full_name as uploader_name, c.name as team_name, c.icon as team_icon
@@ -194,6 +247,19 @@ require_once 'includes/admin-header.php';
                             <span>Order: <?php echo $image['display_order']; ?></span>
                         </div>
                         <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+                            <button type="button" 
+                                    class="btn-action edit" 
+                                    title="Edit"
+                                    onclick='openEditModal(<?php echo htmlspecialchars(json_encode([
+                                        "id" => $image["id"],
+                                        "title" => $image["title"] ?? "",
+                                        "category" => $image["category"] ?? "general",
+                                        "category_id" => $image["category_id"] ?? "",
+                                        "display_order" => $image["display_order"] ?? 0,
+                                        "is_active" => $image["is_active"] ?? 1
+                                    ]), ENT_QUOTES, "UTF-8"); ?>)'>
+                                <i class="fas fa-edit"></i>
+                            </button>
                             <a href="gallery.php?toggle=<?php echo $image['id']; ?>" 
                                class="btn-action <?php echo $image['is_active'] ? 'view' : 'edit'; ?>"
                                title="<?php echo $image['is_active'] ? 'Hide' : 'Show'; ?>">
@@ -227,11 +293,107 @@ require_once 'includes/admin-header.php';
     <?php endif; ?>
 </div>
 
+<!-- Edit Modal -->
+<div id="editGalleryModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:2000;align-items:center;justify-content:center;padding:20px;">
+    <div style="background:var(--admin-card);padding:30px;border-radius:15px;max-width:550px;width:100%;max-height:90vh;overflow-y:auto;">
+        <h3 style="margin-bottom:15px;color:var(--admin-dark);">✏️ Edit Gallery Image</h3>
+        
+        <form method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="edit_gallery" value="1">
+            <input type="hidden" name="id" id="edit_id">
+
+            <div class="form-group">
+                <label>Title</label>
+                <input type="text" name="edit_title" id="edit_title" class="form-control" placeholder="Image title">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Category</label>
+                    <select name="edit_category" id="edit_category" class="form-control">
+                        <option value="general">General</option>
+                        <option value="match-day">Match Day</option>
+                        <option value="training">Training</option>
+                        <option value="events">Events</option>
+                        <option value="community">Community</option>
+                        <option value="stadium">Stadium</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Team (Optional)</label>
+                    <select name="edit_category_id" id="edit_category_id" class="form-control">
+                        <option value="">All Teams (General)</option>
+                        <?php 
+                        $cats = getActiveCategories();
+                        foreach ($cats as $cat): 
+                        ?>
+                            <option value="<?php echo $cat['id']; ?>">
+                                <?php echo $cat['icon'] ?? '⚽'; ?> <?php echo $cat['name']; ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Display Order</label>
+                    <input type="number" name="edit_display_order" id="edit_display_order" class="form-control" value="0">
+                    <small style="color:var(--admin-gray);">Lower numbers appear first</small>
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:8px;">
+                        <input type="checkbox" name="edit_is_active" id="edit_is_active" value="1">
+                        Active (visible on site)
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Replace Image (Optional)</label>
+                <input type="file" name="edit_image" class="form-control" accept="image/*">
+                <small style="color:var(--admin-gray);">Leave empty to keep the current image</small>
+            </div>
+
+            <div style="display:flex;gap:10px;margin-top:20px;">
+                <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Update Image</button>
+                <button type="button" class="btn-secondary" onclick="closeEditModal()">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
 // Auto-hide upload form after upload
 <?php if ($success): ?>
     document.getElementById('uploadForm').style.display = 'none';
 <?php endif; ?>
+
+function openEditModal(image) {
+    document.getElementById('edit_id').value = image.id;
+    document.getElementById('edit_title').value = image.title || '';
+    document.getElementById('edit_category').value = image.category || 'general';
+    document.getElementById('edit_category_id').value = image.category_id || '';
+    document.getElementById('edit_display_order').value = image.display_order || 0;
+    document.getElementById('edit_is_active').checked = image.is_active == 1;
+    
+    document.getElementById('editGalleryModal').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+}
+
+function closeEditModal() {
+    document.getElementById('editGalleryModal').style.display = 'none';
+    document.body.style.overflow = 'auto';
+}
+
+document.getElementById('editGalleryModal').addEventListener('click', function(e) {
+    if (e.target === this) closeEditModal();
+});
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeEditModal();
+});
 </script>
 
 <?php require_once 'includes/admin-footer.php'; ?>
