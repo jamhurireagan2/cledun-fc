@@ -354,6 +354,8 @@ if ($fbUrl):
         <i class="fab fa-facebook-f" style="font-size:1rem;"></i>
     </a>
 </li>
+
+
 <?php endif; ?>
                 <li><a href="<?php echo SITE_URL; ?>tickets.php" class="btn btn-primary" style="background:#fbbf24;color:#1a2a6c;padding:10px 20px;border-radius:8px;text-align:center;">🎟️ Tickets</a></li>
             </ul>
