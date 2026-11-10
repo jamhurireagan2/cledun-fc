@@ -7,9 +7,33 @@ $pageTitle = 'Home - ' . SITE_NAME;
 $db = getDB();
 
 // Get all categories
-// Get all categories and sort by ID (Ascending)
-$stmt = $db->query("SELECT * FROM categories WHERE is_active = 1 ORDER BY id ASC");
+$stmt = $db->query("SELECT * FROM categories WHERE is_active = 1");
 $categories = $stmt->fetchAll();
+
+// Custom sort to extract the number from the name (e.g., '15' becomes 15) and sort numerically
+usort($categories, function($a, $b) {
+    // 1. Force Senior to always be at the bottom
+    $isSeniorA = (stripos($a['name'], 'senior') !== false);
+    $isSeniorB = (stripos($b['name'], 'senior') !== false);
+    
+    if ($isSeniorA && !$isSeniorB) return 1;
+    if (!$isSeniorA && $isSeniorB) return -1;
+    if ($isSeniorA && $isSeniorB) return 0;
+    
+    // 2. Extract the first number found in the name (e.g., "U15" or "15" becomes 15)
+    preg_match('/\d+/', $a['name'], $matchesA);
+    preg_match('/\d+/', $b['name'], $matchesB);
+    
+    $numA = isset($matchesA[0]) ? intval($matchesA[0]) : 999;
+    $numB = isset($matchesB[0]) ? intval($matchesB[0]) : 999;
+    
+    // 3. Sort by the extracted number
+    if ($numA == $numB) {
+        return strcmp($a['name'], $b['name']); // If numbers are same, sort alphabetically
+    }
+    
+    return ($numA < $numB) ? -1 : 1;
+});
 
 // Get latest news
 $latestNews = $db->query("SELECT * FROM news WHERE is_published = 1 ORDER BY created_at DESC LIMIT 3")->fetchAll();

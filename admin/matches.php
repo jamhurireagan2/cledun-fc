@@ -81,31 +81,38 @@ require_once 'includes/admin-header.php';
                     <?php foreach ($matches as $match): ?>
                         <tr>
                             <td><?php echo $match['id']; ?></td>
+                            
                             <td><?php echo $match['category_icon'] ?? '⚽'; ?> <?php echo $match['category_name'] ?? 'Match'; ?></td>
-               <td>
-    <span class="status-badge" style="background: <?php 
-        echo $match['display_status'] === 'Live' ? '#fef3c7' : ($match['display_status'] === 'Completed' ? '#d1fae5' : ($match['display_status'] === 'Cancelled' ? '#fce4ec' : '#dbeafe')); 
-    ?>; color: <?php 
-        echo $match['display_status'] === 'Live' ? '#92400e' : ($match['display_status'] === 'Completed' ? '#065f46' : ($match['display_status'] === 'Cancelled' ? '#9a3412' : '#1e40af')); 
-    ?>; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">
-        <?php echo $match['display_status']; ?>
-    </span>
-</td>             <td><strong><?php echo $match['opponent']; ?></strong></td>
+                            
+                            <td><strong><?php echo $match['opponent']; ?></strong></td>
+                            
                             <td>
                                 <span style="background:<?php echo $match['match_type'] === 'home' ? 'var(--admin-secondary)' : '#e5e7eb'; ?>;padding:2px 10px;border-radius:12px;font-size:0.75rem;">
                                     <?php echo $match['match_type'] === 'home' ? '🏠 Home' : '✈️ Away'; ?>
                                 </span>
                             </td>
+                            
                             <td><?php echo formatDate($match['match_date'], 'M j, Y g:i A'); ?></td>
+                            
+                            <!-- FIXED SCORE LOGIC -->
                             <td>
-                                <?php if ($match['status'] === 'completed'): ?>
-                                    <strong><?php echo $match['Home_score'] ?? '0'; ?> - <?php echo $match['Away_score'] ?? '0'; ?></strong>
+                                <?php if ($match['display_status'] === 'Completed' || $match['display_status'] === 'Live'): ?>
+                                    <strong><?php echo $match['home_score'] ?? '0'; ?> - <?php echo $match['away_score'] ?? '0'; ?></strong>
                                 <?php else: ?>
                                     <span style="color:var(--admin-gray);">-</span>
                                 <?php endif; ?>
                             </td>
-
                             
+                            <!-- FIXED STATUS BADGE LOGIC -->
+                            <td>
+                                <span class="status-badge" style="background: <?php 
+                                    echo $match['display_status'] === 'Live' ? '#fef3c7' : ($match['display_status'] === 'Completed' ? '#d1fae5' : ($match['display_status'] === 'Cancelled' ? '#fce4ec' : '#dbeafe')); 
+                                ?>; color: <?php 
+                                    echo $match['display_status'] === 'Live' ? '#92400e' : ($match['display_status'] === 'Completed' ? '#065f46' : ($match['display_status'] === 'Cancelled' ? '#9a3412' : '#1e40af')); 
+                                ?>; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">
+                                    <?php echo $match['display_status']; ?>
+                                </span>
+                            </td>
                             
                             <td>
                                 <a href="matches-edit.php?id=<?php echo $match['id']; ?>" class="btn-action edit"><i class="fas fa-edit"></i></a>
