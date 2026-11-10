@@ -7,7 +7,9 @@ $pageTitle = 'Home - ' . SITE_NAME;
 $db = getDB();
 
 // Get all categories
-$categories = getActiveCategories();
+// Get all categories and sort by ID (Ascending)
+$stmt = $db->query("SELECT * FROM categories WHERE is_active = 1 ORDER BY id ASC");
+$categories = $stmt->fetchAll();
 
 // Get latest news
 $latestNews = $db->query("SELECT * FROM news WHERE is_published = 1 ORDER BY created_at DESC LIMIT 3")->fetchAll();

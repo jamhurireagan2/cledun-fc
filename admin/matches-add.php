@@ -88,24 +88,25 @@ require_once 'includes/admin-header.php';
                     <label>Match Date & Time *</label>
                     <input type="datetime-local" name="match_date" class="form-control" required>
                 </div>
+                
                 <div class="form-group">
-                    <label>Status *</label>
-                    <select name="status" class="form-control" required>
-                        <option value="scheduled">Scheduled</option>
-                        <option value="live">Live</option>
-                        <option value="completed">Completed</option>
-                        <option value="cancelled">Cancelled</option>
-                    </select>
-                </div>
+    <label>Status</label>
+    <select name="status" class="form-control">
+        <option value="scheduled">Automatic (Scheduled/Live/Completed based on date)</option>
+        <option value="cancelled">Cancelled (Override)</option>
+    </select>
+    <small style="color:var(--admin-gray);">The system handles the rest automatically based on the match date.</small>
+</div>
+
             </div>
             
             <div class="form-row">
                 <div class="form-group">
-                    <label>Home Score</label>
+                    <label>CLEDUN FC Score</label>
                     <input type="number" name="home_score" class="form-control" min="0">
                 </div>
                 <div class="form-group">
-                    <label>Away Score</label>
+                    <label>OPPONENT Score</label>
                     <input type="number" name="away_score" class="form-control" min="0">
                 </div>
             </div>

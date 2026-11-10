@@ -21,13 +21,30 @@ if (isset($_GET['delete']) && is_numeric($_GET['delete'])) {
     exit();
 }
 
-// Get matches with category info
 $matches = $db->query("
     SELECT m.*, c.name as category_name, c.icon as category_icon 
     FROM matches m 
     LEFT JOIN categories c ON m.category_id = c.id 
     ORDER BY m.match_date DESC
 ")->fetchAll();
+
+// Automatically calculate status based on date
+foreach ($matches as &$match) {
+    if ($match['status'] === 'cancelled') {
+        $match['display_status'] = 'Cancelled';
+    } else {
+        $now = time();
+        $matchTime = strtotime($match['match_date']);
+        
+        if ($now < $matchTime) {
+            $match['display_status'] = 'Scheduled';
+        } elseif ($now >= $matchTime && $now <= ($matchTime + 7200)) { // 7200 seconds = 2 hours
+            $match['display_status'] = 'Live';
+        } else {
+            $match['display_status'] = 'Completed';
+        }
+    }
+}
 
 require_once 'includes/admin-header.php';
 ?>
@@ -65,7 +82,15 @@ require_once 'includes/admin-header.php';
                         <tr>
                             <td><?php echo $match['id']; ?></td>
                             <td><?php echo $match['category_icon'] ?? '⚽'; ?> <?php echo $match['category_name'] ?? 'Match'; ?></td>
-                            <td><strong><?php echo $match['opponent']; ?></strong></td>
+               <td>
+    <span class="status-badge" style="background: <?php 
+        echo $match['display_status'] === 'Live' ? '#fef3c7' : ($match['display_status'] === 'Completed' ? '#d1fae5' : ($match['display_status'] === 'Cancelled' ? '#fce4ec' : '#dbeafe')); 
+    ?>; color: <?php 
+        echo $match['display_status'] === 'Live' ? '#92400e' : ($match['display_status'] === 'Completed' ? '#065f46' : ($match['display_status'] === 'Cancelled' ? '#9a3412' : '#1e40af')); 
+    ?>; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">
+        <?php echo $match['display_status']; ?>
+    </span>
+</td>             <td><strong><?php echo $match['opponent']; ?></strong></td>
                             <td>
                                 <span style="background:<?php echo $match['match_type'] === 'home' ? 'var(--admin-secondary)' : '#e5e7eb'; ?>;padding:2px 10px;border-radius:12px;font-size:0.75rem;">
                                     <?php echo $match['match_type'] === 'home' ? '🏠 Home' : '✈️ Away'; ?>
@@ -74,16 +99,14 @@ require_once 'includes/admin-header.php';
                             <td><?php echo formatDate($match['match_date'], 'M j, Y g:i A'); ?></td>
                             <td>
                                 <?php if ($match['status'] === 'completed'): ?>
-                                    <strong><?php echo $match['home_score'] ?? '0'; ?> - <?php echo $match['away_score'] ?? '0'; ?></strong>
+                                    <strong><?php echo $match['Home_score'] ?? '0'; ?> - <?php echo $match['Away_score'] ?? '0'; ?></strong>
                                 <?php else: ?>
                                     <span style="color:var(--admin-gray);">-</span>
                                 <?php endif; ?>
                             </td>
-                            <td>
-                                <span class="status-badge <?php echo $match['status']; ?>">
-                                    <?php echo ucfirst($match['status']); ?>
-                                </span>
-                            </td>
+
+                            
+                            
                             <td>
                                 <a href="matches-edit.php?id=<?php echo $match['id']; ?>" class="btn-action edit"><i class="fas fa-edit"></i></a>
                                 <a href="matches.php?delete=<?php echo $match['id']; ?>" class="btn-action delete delete-confirm"><i class="fas fa-trash"></i></a>

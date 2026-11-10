@@ -107,14 +107,13 @@ require_once 'includes/admin-header.php';
                     <input type="datetime-local" name="match_date" class="form-control" value="<?php echo date('Y-m-d\TH:i', strtotime($match['match_date'])); ?>" required>
                 </div>
                 <div class="form-group">
-                    <label>Status *</label>
-                    <select name="status" class="form-control" required>
-                        <option value="scheduled" <?php echo $match['status'] == 'scheduled' ? 'selected' : ''; ?>>Scheduled</option>
-                        <option value="live" <?php echo $match['status'] == 'live' ? 'selected' : ''; ?>>Live</option>
-                        <option value="completed" <?php echo $match['status'] == 'completed' ? 'selected' : ''; ?>>Completed</option>
-                        <option value="cancelled" <?php echo $match['status'] == 'cancelled' ? 'selected' : ''; ?>>Cancelled</option>
-                    </select>
-                </div>
+    <label>Status</label>
+    <select name="status" class="form-control">
+        <option value="scheduled" <?php echo $match['status'] == 'scheduled' ? 'selected' : ''; ?>>Automatic (Scheduled/Live/Completed based on date)</option>
+        <option value="cancelled" <?php echo $match['status'] == 'cancelled' ? 'selected' : ''; ?>>Cancelled (Override)</option>
+    </select>
+    <small style="color:var(--admin-gray);">The system handles the rest automatically based on the match date.</small>
+</div>
             </div>
             
             <div class="form-row">
