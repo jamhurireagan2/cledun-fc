@@ -1,695 +1,462 @@
-<?php
-// Load required files first
-require_once __DIR__ . '/../../includes/config.php';
-require_once __DIR__ . '/../../includes/database.php';
-require_once __DIR__ . '/../../includes/functions.php';
-
-if (!isLoggedIn()) {
-    header('Location: ../cledun-access.php');
-    exit();
-}
-
-$db = getDB();
-?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- Google Analytics (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-LRREL645W9"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-LRREL645W9');
+    </script>
+    <!-- End Google Analytics -->
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo isset($pageTitle) ? $pageTitle : 'Admin Panel'; ?> - <?php echo SITE_NAME; ?></title>
+    <title><?php echo isset($pageTitle) ? $pageTitle : SITE_NAME; ?></title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="<?php echo SITE_URL; ?>manifest.json">
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#1a2a6c">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="CLEDUN FC">
+    <link rel="apple-touch-icon" href="<?php echo SITE_URL; ?>assets/images/icon-192.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="<?php echo SITE_URL; ?>assets/images/icon-96.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="<?php echo SITE_URL; ?>assets/images/icon-72.png">
+    
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="<?php echo SITE_URL; ?>assets/css/style.css">
+    <link rel="stylesheet" href="<?php echo SITE_URL; ?>assets/css/responsive.css">
+    
     <style>
-        :root {
-            --admin-primary: #1a2a6c;
-            --admin-secondary: #fbbf24;
-            --admin-dark: #0d1b3e;
-            --admin-bg: #f3f4f6;
-            --admin-card: #ffffff;
-            --admin-shadow: 0 4px 20px rgba(0,0,0,0.08);
-            --admin-radius: 12px;
-            --admin-sidebar: #0d1b3e;
-            --admin-text: #111827;
-            --admin-gray: #6b7280;
-        }
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Inter', sans-serif;
-            background: var(--admin-bg);
-            color: var(--admin-text);
-            display: flex;
-            min-height: 100vh;
-        }
-        
-        .admin-sidebar {
-            width: 260px;
-            background: var(--admin-sidebar);
-            color: #fff;
-            min-height: 100vh;
-            padding: 20px 0;
-            position: fixed;
+        /* Navigation Styles */
+        .navbar {
+            background: linear-gradient(135deg, #1a2a6c, #0d1b3e);
+            position: sticky;
             top: 0;
-            left: 0;
-            bottom: 0;
-            overflow-y: auto;
             z-index: 1000;
-            transition: transform 0.3s ease;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
         }
         
-        .admin-sidebar .brand {
-            padding: 0 20px 20px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            margin-bottom: 20px;
-            text-align: center;
-        }
-        
-        .admin-sidebar .brand h2 {
-            font-size: 1.3rem;
-            font-weight: 800;
-        }
-        
-        .admin-sidebar .brand h2 span {
-            color: var(--admin-secondary);
-        }
-        
-        .admin-sidebar .brand small {
-            display: block;
-            opacity: 0.6;
-            font-size: 0.75rem;
-            margin-top: 4px;
-        }
-        
-        .admin-sidebar .user-info {
-            padding: 0 20px 20px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            margin-bottom: 20px;
-            text-align: center;
-        }
-        
-        .admin-sidebar .user-info .avatar {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: var(--admin-secondary);
-            color: var(--admin-dark);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin: 0 auto 8px;
-        }
-        
-        .admin-sidebar .user-info .name {
-            font-weight: 600;
-            font-size: 0.95rem;
-        }
-        
-        .admin-sidebar .user-info .role {
-            font-size: 0.75rem;
-            opacity: 0.6;
-        }
-        
-        .admin-sidebar .menu {
-            list-style: none;
-            padding: 0 10px;
-        }
-        
-        .admin-sidebar .menu li {
-            margin-bottom: 4px;
-        }
-        
-        .admin-sidebar .menu li a {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px 16px;
-            color: rgba(255,255,255,0.7);
-            text-decoration: none;
-            border-radius: 10px;
-            transition: all 0.3s;
-            font-size: 0.9rem;
-        }
-        
-        .admin-sidebar .menu li a:hover,
-        .admin-sidebar .menu li a.active {
-            background: rgba(255,255,255,0.1);
-            color: #fff;
-        }
-        
-        .admin-sidebar .menu li a.active {
-            background: var(--admin-secondary);
-            color: var(--admin-dark);
-            font-weight: 600;
-        }
-        
-        .admin-sidebar .menu li a i {
-            width: 20px;
-            text-align: center;
-        }
-        
-        .admin-main {
-            margin-left: 260px;
-            flex: 1;
-            padding: 20px 30px 30px;
-            min-height: 100vh;
-        }
-        
-        .admin-topbar {
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 15px 0;
-            border-bottom: 1px solid #e5e7eb;
-            margin-bottom: 25px;
-            flex-wrap: wrap;
-            gap: 10px;
+            padding: 12px 20px;
+            position: relative;
         }
         
-        .admin-topbar h1 {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--admin-dark);
-        }
-        
-        .admin-topbar .admin-actions {
+        .nav-logo {
             display: flex;
-            gap: 10px;
+            align-items: center;
+            gap: 12px;
+            color: #fff;
+            text-decoration: none;
+            font-weight: 800;
+            font-size: 1.5rem;
+        }
+        
+        .nav-logo img {
+            height: 50px;
+            width: auto;
+        }
+        
+        .nav-logo span {
+            color: #fbbf24;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 20px;
+            list-style: none;
+            margin: 0;
+            padding: 0;
             align-items: center;
         }
         
-        .admin-topbar .admin-actions a {
-            padding: 8px 16px;
-            border-radius: 8px;
+        .nav-links li a {
+            color: #e5e7eb;
             text-decoration: none;
-            font-size: 0.85rem;
             font-weight: 600;
-            transition: all 0.3s;
-        }
-        
-        .admin-topbar .admin-actions .btn-logout {
-            background: #ef4444;
-            color: #fff;
-        }
-        
-        .admin-topbar .admin-actions .btn-logout:hover {
-            background: #dc2626;
-        }
-        
-        .admin-topbar .admin-actions .btn-website {
-            background: var(--admin-secondary);
-            color: var(--admin-dark);
-        }
-        
-        .admin-topbar .admin-actions .btn-website:hover {
-            background: #fcd34d;
-        }
-        
-        .admin-card {
-            background: var(--admin-card);
-            border-radius: var(--admin-radius);
-            padding: 25px;
-            box-shadow: var(--admin-shadow);
-            margin-bottom: 25px;
-        }
-        
-        .admin-card h3 {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: var(--admin-dark);
-            margin-bottom: 15px;
-        }
-        
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 25px;
-        }
-        
-        .stat-card {
-            background: var(--admin-card);
-            border-radius: var(--admin-radius);
-            padding: 20px;
-            box-shadow: var(--admin-shadow);
-            border-left: 4px solid var(--admin-secondary);
-        }
-        
-        .stat-card .stat-icon {
-            font-size: 1.5rem;
-            margin-bottom: 8px;
-        }
-        
-        .stat-card .stat-number {
-            font-size: 2rem;
-            font-weight: 800;
-            color: var(--admin-dark);
-        }
-        
-        .stat-card .stat-label {
-            font-size: 0.85rem;
-            color: var(--admin-gray);
-        }
-        
-        .table-container {
-            overflow-x: auto;
-        }
-        
-        .admin-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.9rem;
-        }
-        
-        .admin-table th {
-            background: var(--admin-bg);
-            padding: 12px 16px;
-            text-align: left;
-            font-weight: 600;
-            color: var(--admin-gray);
-            text-transform: uppercase;
-            font-size: 0.75rem;
-            letter-spacing: 0.5px;
-        }
-        
-        .admin-table td {
-            padding: 12px 16px;
-            border-bottom: 1px solid #e5e7eb;
-        }
-        
-        .admin-table tr:hover td {
-            background: #f9fafb;
-        }
-        
-        .admin-table .status-badge {
-            padding: 3px 12px;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            display: inline-block;
-        }
-        
-        .admin-table .status-badge.active {
-            background: #d1fae5;
-            color: #065f46;
-        }
-        
-        .admin-table .status-badge.inactive {
-            background: #fce4ec;
-            color: #9a3412;
-        }
-        
-        .admin-table .status-badge.published {
-            background: #d1fae5;
-            color: #065f46;
-        }
-        
-        .admin-table .status-badge.draft {
-            background: #fef3c7;
-            color: #92400e;
-        }
-        
-        .btn-primary {
-            display: inline-block;
-            padding: 10px 24px;
-            background: var(--admin-secondary);
-            color: var(--admin-dark);
-            border: none;
-            border-radius: 8px;
-            font-weight: 700;
-            font-size: 0.9rem;
-            cursor: pointer;
-            text-decoration: none;
-            transition: all 0.3s;
-        }
-        
-        .btn-primary:hover {
-            background: #fcd34d;
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(251, 191, 36, 0.3);
-        }
-        
-        .btn-secondary {
-            display: inline-block;
-            padding: 10px 24px;
-            background: #e5e7eb;
-            color: #374151;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 0.9rem;
-            cursor: pointer;
-            text-decoration: none;
-            transition: all 0.3s;
-        }
-        
-        .btn-secondary:hover {
-            background: #d1d5db;
-        }
-        
-        .btn-danger {
-            display: inline-block;
-            padding: 10px 24px;
-            background: #ef4444;
-            color: #fff;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 0.9rem;
-            cursor: pointer;
-            text-decoration: none;
-            transition: all 0.3s;
-        }
-        
-        .btn-danger:hover {
-            background: #dc2626;
-        }
-        
-        .btn-sm {
-            padding: 6px 14px;
-            font-size: 0.8rem;
-        }
-        
-        .btn-action {
-            padding: 4px 10px;
-            border-radius: 6px;
-            text-decoration: none;
-            font-size: 0.85rem;
-            transition: all 0.3s;
-            display: inline-block;
-        }
-        
-        .btn-action.edit {
-            color: #2563eb;
-        }
-        
-        .btn-action.edit:hover {
-            background: #dbeafe;
-        }
-        
-        .btn-action.delete {
-            color: #dc2626;
-        }
-        
-        .btn-action.delete:hover {
-            background: #fce4ec;
-        }
-        
-        .btn-action.view {
-            color: #059669;
-        }
-        
-        .btn-action.view:hover {
-            background: #d1fae5;
-        }
-        
-        .form-control {
-            width: 100%;
-            padding: 10px 14px;
-            border: 2px solid #e5e7eb;
-            border-radius: 8px;
             font-size: 0.95rem;
-            font-family: inherit;
-            transition: all 0.3s;
-        }
-        
-        .form-control:focus {
-            outline: none;
-            border-color: var(--admin-secondary);
-            box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.1);
-        }
-        
-        .form-group {
-            margin-bottom: 16px;
-        }
-        
-        .form-group label {
+            transition: color 0.3s;
+            padding: 8px 0;
             display: block;
-            font-weight: 600;
-            font-size: 0.9rem;
-            margin-bottom: 4px;
         }
         
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
+        .nav-links li a:hover,
+        .nav-links li a.active {
+            color: #fbbf24;
         }
         
-        .alert {
-            padding: 12px 16px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            font-size: 0.9rem;
-            border-left: 4px solid;
+        .nav-links .dropdown {
+            position: relative;
         }
         
-        .alert-success {
-            border-left-color: #10b981;
-            background: #ecfdf5;
-            color: #065f46;
+        .nav-links .dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: #1a2a6c;
+            min-width: 200px;
+            border-radius: 8px;
+            padding: 10px 0;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            list-style: none;
+            margin: 0;
         }
         
-        .alert-error {
-            border-left-color: #ef4444;
-            background: #fef2f2;
-            color: #991b1b;
+        .nav-links .dropdown:hover .dropdown-menu {
+            display: block;
         }
         
-        .alert-warning {
-            border-left-color: #f59e0b;
-            background: #fffbeb;
-            color: #92400e;
+        .nav-links .dropdown-menu li a {
+            padding: 8px 20px;
+            font-weight: 400;
         }
         
-        @media (max-width: 768px) {
-            .admin-sidebar {
-                transform: translateX(-100%);
-                width: 280px;
-            }
-            
-            .admin-sidebar.open {
-                transform: translateX(0);
-            }
-            
-            .admin-main {
-                margin-left: 0;
-                padding: 15px;
-            }
-            
-            .hamburger {
-                display: flex !important;
-            }
-            
-            .form-row {
-                grid-template-columns: 1fr;
-            }
-            
-            .stats-grid {
-                grid-template-columns: 1fr 1fr;
-            }
+        .nav-links .dropdown-menu li a:hover {
+            background: rgba(251, 191, 36, 0.1);
+            color: #fbbf24;
         }
         
+                /* Social Icons in Nav */
+        .nav-social {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-left: 10px; /* Adds a bit of space after the Register link */
+        }
+        
+        /* We target the 'a' tag specifically inside .nav-social to override the default link padding */
+        .nav-links .nav-social a {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 36px !important;
+            height: 36px !important;
+            padding: 0 !important; /* Removes the 8px padding that was squashing it */
+            border-radius: 50% !important;
+            color: white !important;
+            text-decoration: none !important;
+            transition: transform 0.3s;
+        }
+        
+        .nav-links .nav-social a:hover {
+            transform: scale(1.1);
+            color: white !important;
+        }
+        
+        .nav-links .nav-social a i {
+            font-size: 1rem;
+            margin: 0;
+        }
+
         .hamburger {
             display: none;
-            background: none;
-            border: none;
             flex-direction: column;
             gap: 5px;
-            padding: 5px;
+            background: none;
+            border: none;
             cursor: pointer;
+            padding: 8px;
+            z-index: 1000;
+            position: relative;
         }
         
         .hamburger span {
             width: 28px;
             height: 3px;
-            background: var(--admin-dark);
+            background: #fff;
             border-radius: 3px;
             transition: 0.3s;
         }
         
-        .sidebar-overlay {
+        .hamburger.active span:nth-child(1) {
+            transform: rotate(45deg) translate(5px, 5px);
+        }
+        
+        .hamburger.active span:nth-child(2) {
+            opacity: 0;
+        }
+        
+        .hamburger.active span:nth-child(3) {
+            transform: rotate(-45deg) translate(5px, -5px);
+        }
+        
+        .nav-live-badge {
+            background: #ef4444;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.6rem;
+            font-weight: 700;
+            margin-left: 4px;
+            display: inline-block;
+            animation: pulse-live-nav 1.5s infinite;
+        }
+        
+        @keyframes pulse-live-nav {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        
+        /* Mobile Menu Overlay */
+        .menu-overlay {
             display: none;
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0,0,0,0.5);
-            z-index: 999;
+            background: rgba(0,0,0,0.6);
+            z-index: 998;
+            opacity: 0;
+            transition: opacity 0.3s ease;
         }
         
-        .sidebar-overlay.show {
+        .menu-overlay.active {
             display: block;
+            opacity: 1;
+        }
+        
+        /* MOBILE STYLES - SIDE DRAWER */
+        @media (max-width: 992px) {
+            .hamburger {
+                display: flex;
+                position: fixed;
+                top: 15px;
+                right: 20px;
+                z-index: 1000;
+            }
+            
+            .nav-logo {
+                z-index: 1000;
+            }
+            
+            .nav-links {
+                display: flex;
+                position: fixed;
+                top: 0;
+                right: -100%;
+                width: 280px;
+                height: 100vh;
+                background: #0d1b3e;
+                flex-direction: column;
+                padding: 80px 20px 30px;
+                gap: 0;
+                box-shadow: -10px 0 40px rgba(0,0,0,0.5);
+                align-items: stretch;
+                transition: right 0.3s ease;
+                overflow-y: auto;
+                z-index: 999;
+                margin: 0;
+                list-style: none;
+            }
+            
+            .nav-links.active {
+                right: 0;
+            }
+            
+            .nav-links li {
+                width: 100%;
+                border-bottom: 1px solid rgba(255,255,255,0.1);
+            }
+            
+            .nav-links li:last-child {
+                border-bottom: none;
+                margin-top: 15px;
+            }
+            
+            .nav-links li a {
+                padding: 14px 0;
+                font-size: 1rem;
+                width: 100%;
+                color: #e5e7eb;
+                display: block;
+            }
+            
+            .nav-links .dropdown {
+                position: static;
+                width: 100%;
+            }
+            
+            .nav-links .dropdown-menu {
+                display: none;
+                position: static;
+                background: rgba(255,255,255,0.05);
+                padding: 5px 0 5px 20px;
+                border-radius: 8px;
+                margin: 5px 0;
+                box-shadow: none;
+                width: 100%;
+            }
+            
+            .nav-links .dropdown.open .dropdown-menu {
+                display: block;
+            }
+            
+            .nav-links .dropdown-menu li {
+                border-bottom: none;
+            }
+            
+            .nav-links .dropdown-menu li a {
+                padding: 10px 0;
+                font-size: 0.9rem;
+            }
+            
+            .nav-links li a.btn-primary {
+                display: block;
+                text-align: center;
+                margin: 10px 0;
+            }
+
+            /* Adjust social icons on mobile */
+            .nav-social {
+                margin-top: 15px;
+                justify-content: center;
+                border-bottom: none !important;
+            }
         }
     </style>
 </head>
 <body>
-    <!-- Sidebar Overlay -->
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
     
-    <!-- Sidebar -->
-    <aside class="admin-sidebar" id="adminSidebar">
-        <div class="brand">
-            <h2>CLEDUN <span>FC</span></h2>
-            <small>Admin Panel</small>
-        </div>
-        
-        <div class="user-info">
-            <div class="avatar"><?php echo strtoupper(substr($_SESSION['full_name'] ?? 'A', 0, 1)); ?></div>
-            <div class="name"><?php echo $_SESSION['full_name'] ?? 'Admin'; ?></div>
-            <div class="role"><?php echo ucfirst($_SESSION['role'] ?? 'admin'); ?></div>
-        </div>
-        
-        <ul class="menu">
-            <li><a href="dashboard.php" class="<?php echo basename($_SERVER['PHP_SELF']) === 'dashboard.php' ? 'active' : ''; ?>">
-                <i class="fas fa-chart-pie"></i> Dashboard
-            </a></li>
-            <li><a href="players.php" class="<?php echo strpos($_SERVER['PHP_SELF'], 'players') !== false ? 'active' : ''; ?>">
-                <i class="fas fa-users"></i> Players
-            </a></li>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="<?php echo SITE_URL; ?>" class="nav-logo">
+                <img src="<?php echo SITE_URL; ?>assets/images/badge.png" alt="CLEDUN FC" onerror="this.style.display='none'">
+                CLEDUN <span>FOOTBALL ACADEMY</span>
+            </a>
             
-            <li><a href="registrations.php" class="<?php echo strpos($_SERVER['PHP_SELF'], 'registrations') !== false ? 'active' : ''; ?>">
-                   <i class="fas fa-user-plus"></i> Registrations
-                  <?php
-                      $pending = getDB()->query("SELECT COUNT(*) AS c FROM player_registrations WHERE status='pending'")->fetch()['c'];
-                        if ($pending > 0) echo '<span style="background:#ef4444;color:#fff;padding:2px 8px;border-radius:12px;font-size:0.7rem;margin-                                          left:auto;">'.$pending.'</span>';
-                         ?>
-            </a></li>
+            <button class="hamburger" id="hamburger" aria-label="Menu" type="button">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
             
-            <li><a href="registration-terms.php" class="<?php echo strpos($_SERVER['PHP_SELF'], 'registration-terms') !== false ? 'active' : ''; ?>">
-             <i class="fas fa-file-contract"></i> Registration Terms
-            </a></li>
-            
-            <li><a href="staff.php" class="<?php echo strpos($_SERVER['PHP_SELF'], 'staff') !== false ? 'active' : ''; ?>">
-                <i class="fas fa-user-tie"></i> Staff
-            </a></li>
-            
-            <li><a href="matches.php" class="<?php echo strpos($_SERVER['PHP_SELF'], 'matches') !== false ? 'active' : ''; ?>">
-                <i class="fas fa-futbol"></i> Matches
-            </a></li>
-            <li><a href="news.php" class="<?php echo strpos($_SERVER['PHP_SELF'], 'news') !== false ? 'active' : ''; ?>">
-                <i class="fas fa-newspaper"></i> News
-            </a></li>
-            <li><a href="categories.php" class="<?php echo strpos($_SERVER['PHP_SELF'], 'categories') !== false ? 'active' : ''; ?>">
-                <i class="fas fa-tags"></i> Categories
-            </a></li>
-            
-            <li><a href="category-content.php" class="<?php echo strpos($_SERVER['PHP_SELF'], 'category-content') !== false ? 'active' : ''; ?>">
-    <i class="fas fa-book-open"></i> Team Descriptions
-</a></li>
-<li><a href="category-updates.php" class="<?php echo strpos($_SERVER['PHP_SELF'], 'category-updates') !== false ? 'active' : ''; ?>">
-    <i class="fas fa-pen-fancy"></i> Team Updates
-</a></li>
-            
-            <li><a href="category-content.php" class="<?php echo strpos($_SERVER['PHP_SELF'], 'category-content') !== false ? 'active' : ''; ?>">
-    <i class="fas fa-book-open"></i> Team Descriptions
-</a></li>
-<li><a href="category-updates.php" class="<?php echo strpos($_SERVER['PHP_SELF'], 'category-updates') !== false ? 'active' : ''; ?>">
-    <i class="fas fa-pen-fancy"></i> Team Updates
-</a></li>
-            <!-- ========================================= -->
-            <!-- GALLERY TAB - ADDED HERE -->
-            <!-- ========================================= -->
-            <li><a href="gallery.php" class="<?php echo strpos($_SERVER['PHP_SELF'], 'gallery') !== false ? 'active' : ''; ?>">
-                <i class="fas fa-images"></i> Gallery
-            </a></li>
-            <!-- ========================================= -->
-             <li><a href="videos.php" class="<?php echo strpos($_SERVER['PHP_SELF'], 'videos') !== false ? 'active' : ''; ?>">
-                 <i class="fas fa-video"></i> Videos
-            </a></li>
-            <li><a href="tickets.php" class="<?php echo strpos($_SERVER['PHP_SELF'], 'tickets') !== false ? 'active' : ''; ?>">
-                <i class="fas fa-ticket-alt"></i> Tickets
-            </a></li>
-            <li><a href="bookings.php" class="<?php echo strpos($_SERVER['PHP_SELF'], 'bookings') !== false ? 'active' : ''; ?>">
-                <i class="fas fa-shopping-cart"></i> Bookings
-            </a></li>
-            <li><a href="messages.php" class="<?php echo strpos($_SERVER['PHP_SELF'], 'messages') !== false ? 'active' : ''; ?>">
-                <i class="fas fa-envelope"></i> Messages
-            </a></li>
-            <li><a href="settings.php" class="<?php echo strpos($_SERVER['PHP_SELF'], 'settings') !== false ? 'active' : ''; ?>">
-                <i class="fas fa-cog"></i> Settings
-            </a></li>
-            <li><a href="change-password.php" class="<?php echo strpos($_SERVER['PHP_SELF'], 'change-password') !== false ? 'active' : ''; ?>">
-                <i class="fas fa-key"></i> Change Password
-            </a></li>
+            <ul class="nav-links" id="navLinks">
+                <li><a href="<?php echo SITE_URL; ?>" class="<?php echo ($currentPage ?? '') === 'home' ? 'active' : ''; ?>">Home</a></li>
+                
+                <li class="dropdown">
+                    <a href="javascript:void(0)" class="dropdown-toggle">Teams <i class="fas fa-chevron-down" style="font-size:0.7rem;margin-left:4px;"></i></a>
+                    <ul class="dropdown-menu">
+                        <?php 
+                        $categories = getActiveCategories();
+                        foreach ($categories as $cat): 
+                        ?>
+                            <li><a href="<?php echo SITE_URL; ?>category.php?slug=<?php echo $cat['slug']; ?>">
+                                <?php echo $cat['icon'] ?? '⚽'; ?> <?php echo $cat['name']; ?>
+                            </a></li>
+                        <?php endforeach; ?>
+                    </ul>
+                </li>
+                
+                
+                <li><a href="<?php echo SITE_URL; ?>news.php" class="<?php echo ($currentPage ?? '') === 'news' ? 'active' : ''; ?>">News</a></li>
+                <li><a href="<?php echo SITE_URL; ?>gallery.php" class="<?php echo ($currentPage ?? '') === 'gallery' ? 'active' : ''; ?>">Gallery</a></li>
+                
+                <li><a href="<?php echo SITE_URL; ?>about.php" class="<?php echo ($currentPage ?? '') === 'about' ? 'active' : ''; ?>">About</a></li>
+                <li><a href="<?php echo SITE_URL; ?>contact.php" class="<?php echo ($currentPage ?? '') === 'contact' ? 'active' : ''; ?>">Contact</a></li>
+                <li><a href="<?php echo SITE_URL; ?>register-player.php" class="<?php echo ($currentPage ?? '') === 'register' ? 'active' : ''; ?>">📝 Register</a></li>
 
-            <li><a href="backup-database.php" class="<?php echo strpos($_SERVER['PHP_SELF'], 'backup-database') !== false ? 'active' : ''; ?>">
-                <i class="fas fa-database"></i> Backup
-            </a></li>
-            <li><a href="cleanup.php" class="<?php echo strpos($_SERVER['PHP_SELF'], 'cleanup') !== false ? 'active' : ''; ?>">
-                <i class="fas fa-broom"></i> Cleanup
-            </a></li>
-            <li><a href="add-players-batch.php" class="<?php echo strpos($_SERVER['PHP_SELF'], 'add-players-batch') !== false ? 'active' : ''; ?>">
-                <i class="fas fa-users"></i> Batch Players
-            </a></li>
-            <li><a href="add-staff-batch.php" class="<?php echo strpos($_SERVER['PHP_SELF'], 'add-staff-batch') !== false ? 'active' : ''; ?>">
-                <i class="fas fa-user-tie"></i> Batch Staff
-            </a></li>
-            <li><a href="add-matches-batch.php" class="<?php echo strpos($_SERVER['PHP_SELF'], 'add-matches-batch') !== false ? 'active' : ''; ?>">
-                 <i class="fas fa-futbol"></i> Batch Matches
-            </a></li>
+                <li><a href="<?php echo SITE_URL; ?>merchandise.php" class="<?php echo ($currentPage ?? '') === 'merchandise' ? 'active' : ''; ?>">🛍️ Merchandise</a></li>
 
-            <li><a href="logout.php">
-                <i class="fas fa-sign-out-alt"></i> Logout
-            </a></li>
-        </ul>
-    </aside>
-    
-    <!-- Main Content -->
-    <main class="admin-main">
-        <div class="admin-topbar">
-            <div style="display:flex;align-items:center;gap:15px;">
-                <button class="hamburger" id="hamburger" aria-label="Toggle sidebar">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </button>
-                <h1><?php echo $pageTitle ?? 'Dashboard'; ?></h1>
-            </div>
-            <div class="admin-actions">
-                <a href="<?php echo SITE_URL; ?>" target="_blank" class="btn-website">
-                    <i class="fas fa-globe"></i> View Site
-                </a>
-                <a href="logout.php" class="btn-logout">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </a>
-            </div>
+                <!-- Social Icons -->
+                <?php 
+                $fbUrl = getSettings('social_facebook');
+                $igUrl = getSettings('social_instagram');
+                ?>
+                
+                <?php if ($fbUrl || $igUrl): ?>
+                <li class="nav-social" style="border-bottom:none;">
+                    <?php if ($fbUrl): ?>
+                    <a href="<?php echo htmlspecialchars($fbUrl); ?>" target="_blank" style="background:#1877f2;" title="Follow us on Facebook">
+                        <i class="fab fa-facebook-f"></i>
+                    </a>
+                    <?php endif; ?>
+
+                    <?php if ($igUrl): ?>
+                    <a href="<?php echo htmlspecialchars($igUrl); ?>" target="_blank" style="background:linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);" title="Follow us on Instagram">
+                        <i class="fab fa-instagram"></i>
+                    </a>
+                    <?php endif; ?>
+                </li>
+                <?php endif; ?>
+                
+            </ul>
         </div>
-        
-        <script>
-            document.getElementById('hamburger').addEventListener('click', function() {
-                document.getElementById('adminSidebar').classList.toggle('open');
-                document.getElementById('sidebarOverlay').classList.toggle('show');
-            });
-            
-            document.getElementById('sidebarOverlay').addEventListener('click', function() {
-                document.getElementById('adminSidebar').classList.remove('open');
-                document.getElementById('sidebarOverlay').classList.remove('show');
-            });
-        </script>
-            <!-- Global Delete Confirmation Script -->
+    </nav>
+
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Find all links that have the class 'delete-confirm'
-            const deleteLinks = document.querySelectorAll('.delete-confirm');
-            
-            deleteLinks.forEach(function(link) {
-                link.addEventListener('click', function(e) {
-                    // Show a browser confirmation pop-up
-                    const confirmed = confirm("⚠️ WARNING: Are you sure you want to delete this item?\n\nThis action CANNOT be undone.");
-                    
-                    // If the user clicks "Cancel", stop the link from going to the delete URL
-                    if (!confirmed) {
-                        e.preventDefault(); 
+    document.addEventListener('DOMContentLoaded', function() {
+        var hamburger = document.getElementById('hamburger');
+        var navLinks = document.getElementById('navLinks');
+        var dropdownToggles = document.querySelectorAll('.dropdown-toggle');
+        
+        // Create overlay
+        var overlay = document.createElement('div');
+        overlay.className = 'menu-overlay';
+        document.body.appendChild(overlay);
+        
+        // Toggle mobile menu
+        if (hamburger && navLinks) {
+            hamburger.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                navLinks.classList.toggle('active');
+                hamburger.classList.toggle('active');
+                overlay.classList.toggle('active');
+            });
+        }
+        
+        // Close menu when clicking overlay
+        overlay.addEventListener('click', function() {
+            navLinks.classList.remove('active');
+            hamburger.classList.remove('active');
+            overlay.classList.remove('active');
+        });
+        
+        // Toggle dropdown on click (mobile)
+        dropdownToggles.forEach(function(toggle) {
+            toggle.addEventListener('click', function(e) {
+                if (window.innerWidth <= 992) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    var parent = this.closest('.dropdown');
+                    if (parent) {
+                        parent.classList.toggle('open');
                     }
-                });
+                }
             });
         });
+        
+        // Close menu when clicking a link (except dropdown toggle)
+        var navLinksItems = document.querySelectorAll('.nav-links li a:not(.dropdown-toggle)');
+        navLinksItems.forEach(function(link) {
+            link.addEventListener('click', function() {
+                if (window.innerWidth <= 992) {
+                    navLinks.classList.remove('active');
+                    hamburger.classList.remove('active');
+                    overlay.classList.remove('active');
+                }
+            });
+        });
+    });
     </script>
+
+</body>
+</html>

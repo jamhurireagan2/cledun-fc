@@ -593,6 +593,11 @@ $db = getDB();
             <li><a href="gallery.php" class="<?php echo strpos($_SERVER['PHP_SELF'], 'gallery') !== false ? 'active' : ''; ?>">
                 <i class="fas fa-images"></i> Gallery
             </a></li>
+
+            <li><a href="merchandise.php" class="<?php echo strpos($_SERVER['PHP_SELF'], 'merchandise') !== false ? 'active' : ''; ?>">
+            <i class="fas fa-tshirt"></i> Merchandise
+            </a></li>
+
             <!-- ========================================= -->
              <li><a href="videos.php" class="<?php echo strpos($_SERVER['PHP_SELF'], 'videos') !== false ? 'active' : ''; ?>">
                  <i class="fas fa-video"></i> Videos

@@ -73,6 +73,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'contact_email'    => sanitize($_POST['contact_email'] ?? ''),
             'contact_phone'    => sanitize($_POST['contact_phone'] ?? ''),
             'social_facebook' => sanitize($_POST['social_facebook'] ?? ''),
+            'social_instagram' => sanitize($_POST['social_instagram'] ?? ''),
+            'mpesa_till' => sanitize($_POST['mpesa_till'] ?? ''),
         ];
 
         foreach ($settings as $key => $value) {
@@ -238,20 +240,32 @@ require_once 'includes/admin-header.php';
            placeholder="https://facebook.com/your-page">
     <small style="color:var(--admin-gray);">Full URL to your Facebook page</small>
 </div>
+            <div class="form-group">
+    <label>Instagram Profile URL</label>
+    <input type="url" name="social_instagram" class="form-control" 
+           value="<?php echo $settings['social_instagram'] ?? ''; ?>" 
+           placeholder="https://instagram.com/your-page">
+    <small style="color:var(--admin-gray);">Full URL to your Instagram profile</small>
+</div>
+            
 
 <hr style="margin:25px 0;border-color:#e5e7eb;">
-
-            
 
             <div class="form-row">
                 <div class="form-group">
                     <label>Contact Email</label>
                     <input type="email" name="contact_email" class="form-control" value="<?php echo $settings['contact_email'] ?? 'cledunsports@gmail.com'; ?>">
                 </div>
+                
                 <div class="form-group">
                     <label>Contact Phone</label>
                     <input type="text" name="contact_phone" class="form-control" value="<?php echo $settings['contact_phone'] ?? '0710339213'; ?>">
                 </div>
+                <div class="form-group">
+    <label>M-Pesa Number / Till (For Merchandise)</label>
+    <input type="text" name="mpesa_till" class="form-control" value="<?php echo $settings['mpesa_till'] ?? ''; ?>">
+    <small style="color:var(--admin-gray);">This number will be given to users buying merchandise.</small>
+</div>
             </div>
 
             <div style="margin-top:25px;">
